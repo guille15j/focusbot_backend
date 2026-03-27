@@ -47,15 +47,15 @@ class ActivityResults(enum.Enum):
 class User(db.Model):
     __tablename__ = 'users'
     
-    user_id = db.Column (db.Integer, primary_key = True)
-    name_usr = db.Column (db.String(50), nullable=False )
-    srname_usr = db.Column (db.String(50), nullable=False  )
-    nickname = db.Column (db.String(20), nullable=False ,unique=True )
+    user_id = db.Column(db.Integer, primary_key=True)
+    first_name = db.Column(db.String(50), nullable=False)
+    last_name = db.Column(db.String(50), nullable=False)
+    nickname = db.Column(db.String(20), nullable=False, unique=True)
     phone = db.Column(db.String(20))
-    mail = db.Column (db.String(100), nullable=False, unique=True)
-    hash_pwsd = db.Column (db.Text, nullable=False  )
-    bth_date = db.Column (db.Date, nullable=False  )
-    img = db.Column (db.Text )
+    email = db.Column(db.String(100), nullable=False, unique=True)
+    password_hash = db.Column(db.Text, nullable=False)
+    birth_date = db.Column(db.Date, nullable=False)
+    profile_img = db.Column(db.Text)
     timezone = db.Column(db.String(50), default='UTC')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -98,13 +98,16 @@ class Bot(db.Model):
 class Activity(db.Model):
     __tablename__ = 'activities'
 
-    activity_id = db.Column(db.Integer, primary_key = True)
-    type_id = db.Column(db.Integer, db.ForeignKey('activity_types.type_id'), nullable = False)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable = False)
-    bot_id = db.Column(db.Integer, db.ForeignKey('bots.bot_id'), nullable = False)
+    activity_id = db.Column(db.Integer, primary_key=True)
+    type_id = db.Column(db.Integer, db.ForeignKey('activity_types.type_id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    bot_id = db.Column(db.Integer, db.ForeignKey('bots.bot_id'), nullable=False)
 
-    title = db.Column (db.String(50), nullable = False)
-    description = db.Column (db.String(250))
+    title = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.String(250))
+    
+    duration_minutes = db.Column(db.Integer, nullable=False)
+    
     init_date = db.Column(db.DateTime)
     end_date = db.Column(db.DateTime)
     
@@ -113,41 +116,45 @@ class Activity(db.Model):
 
     result = db.Column(db.Enum(ActivityResults), nullable=True)
 
-class Details(db.Model):
+class Detail(db.Model):
     __tablename__ = 'details'
 
-    # Clave compuesta
-    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), primary_key = True)
-    name_detail = db.Column(db.String(50), primary_key = True)
+    detail_id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    name_detail = db.Column(db.String(50), nullable=False)
     description_detail = db.Column(db.String(250))
     severity = db.Column(db.Enum(SeverityEnum), default=SeverityEnum.LEVE)
 
-class History(db.Model):
-    __tablename__ = 'histories'
-
-    result_id = db.Column(db.Integer, primary_key = True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable = False)
-
-    first_date_range = db.Column(db.DateTime, nullable = False)
-    end_date_range = db.Column(db.DateTime, nullable = False)
-
-    num_completo = db.Column(db.Integer, default=0)
-    num_pospuesto = db.Column(db.Integer, default=0)
-    num_cancelado = db.Column(db.Integer, default=0)
-    num_pendiente = db.Column(db.Integer, default=0)
-
-    avg_focus = db.Column(db.Float, default=0.0)
-    total_activities = db.Column(db.Integer, default=0)
-    total_used_time = db.Column(db.Interval)
-
     __table_args__ = (
-        db.CheckConstraint('avg_focus >= 0.0', name='check_avg_positive'),
-
-        db.CheckConstraint('num_completo >= 0.0', name='check_num_completo_positive'),
-        db.CheckConstraint('num_pospuesto >= 0.0', name='check_num_pospuesto_positive'),
-        db.CheckConstraint('num_cancelado >= 0.0', name='check_num_cancelado_positive'),
-        db.CheckConstraint('num_pendiente >= 0.0', name='check_num_pendiente_positive'),
-
-        db.CheckConstraint('end_date_range >= first_date_range', name='check_date_order'),
+        db.UniqueConstraint('user_id', 'name_detail', name='uq_user_detail_name'),
     )
+
+# class History(db.Model):
+#     __tablename__ = 'histories'
+
+#     result_id = db.Column(db.Integer, primary_key = True)
+#     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable = False)
+
+#     first_date_range = db.Column(db.DateTime, nullable = False)
+#     end_date_range = db.Column(db.DateTime, nullable = False)
+
+#     num_completo = db.Column(db.Integer, default=0)
+#     num_pospuesto = db.Column(db.Integer, default=0)
+#     num_cancelado = db.Column(db.Integer, default=0)
+#     num_pendiente = db.Column(db.Integer, default=0)
+
+#     avg_focus = db.Column(db.Float, default=0.0)
+#     total_activities = db.Column(db.Integer, default=0)
+#     total_used_time = db.Column(db.Interval)
+
+#     __table_args__ = (
+#         db.CheckConstraint('avg_focus >= 0.0', name='check_avg_positive'),
+
+#         db.CheckConstraint('num_completo >= 0.0', name='check_num_completo_positive'),
+#         db.CheckConstraint('num_pospuesto >= 0.0', name='check_num_pospuesto_positive'),
+#         db.CheckConstraint('num_cancelado >= 0.0', name='check_num_cancelado_positive'),
+#         db.CheckConstraint('num_pendiente >= 0.0', name='check_num_pendiente_positive'),
+
+#         db.CheckConstraint('end_date_range >= first_date_range', name='check_date_order'),
+#     )
 
