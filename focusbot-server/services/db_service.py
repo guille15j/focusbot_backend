@@ -30,3 +30,12 @@ class ActivityType (db.Model):
     break_time = db.Column(db.Integer, default = 0)
     num_breaks = db.Column(db.Integer, default = 0)
     name_type = db.Column(db.String(50), nullable =False)
+
+    # Constraints
+    __table_args__ = (
+        CheckConstraint('rest_time < total_time', name='check_rest_less_than_total'),
+        CheckConstraint('total_time >= 0', name='check_total_positive'),
+        CheckConstraint('rest_time >= 0', name='check_rest_positive'),
+        CheckConstraint('break_time >= 0', name='check_break_positive'),
+        CheckConstraint('num_breaks >= 0', name='check_num_breaks_positive'),
+    )
