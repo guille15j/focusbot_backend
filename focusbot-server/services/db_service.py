@@ -33,11 +33,11 @@ class ActivityType (db.Model):
 
     # Constraints
     __table_args__ = (
-        CheckConstraint('rest_time < total_time', name='check_rest_less_than_total'),
-        CheckConstraint('total_time >= 0', name='check_total_positive'),
-        CheckConstraint('rest_time >= 0', name='check_rest_positive'),
-        CheckConstraint('break_time >= 0', name='check_break_positive'),
-        CheckConstraint('num_breaks >= 0', name='check_num_breaks_positive'),
+        db.CheckConstraint('rest_time < total_time', name='check_rest_less_than_total'),
+        db.CheckConstraint('total_time >= 0', name='check_total_positive'),
+        db.CheckConstraint('rest_time >= 0', name='check_rest_positive'),
+        db.CheckConstraint('break_time >= 0', name='check_break_positive'),
+        db.CheckConstraint('num_breaks >= 0', name='check_num_breaks_positive'),
     )
 
 class BotStatus(enum.Enum):
@@ -57,7 +57,7 @@ class Bot(db.Model):
 
     bot_id = db.Column(db.Integer, primary_key = True)
     mac_ddr = db.Column(db.String(17), nullable = False)
-    user_id = db.Column(db.Integer, db.ForeignKey(users.user_id), nullable = True) # No es nullable porque si que peude existir un robot al que aun no se le ha asignado nignun usuario
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable = True) # No es nullable porque si que peude existir un robot al que aun no se le ha asignado nignun usuario
     custom_name = db.Column(db.String(20), default = 'Focus-Bot') 
     passKey = db.Column(db.Text, nullable = False) # Passwd para identificarse durante la comunicación
     access_point = db.Column(db.String(150), nullable = False) # SSID generado por BOT
@@ -89,9 +89,9 @@ class Activity(db.Model):
     __tablename__ = 'activities'
 
     activity_id = db.Column(db.Integer, primary_key = True)
-    type_id = db.Column(db.Integer, db.ForeignKey(activity_types.type_id), nullable = False)
-    user_id = db.Column(db.Integer, db.ForeignKey(users.user_id), nullable = False)
-    bot_id = db.Column(db.Integer, db.ForeignKey(bots.bot_id), nullable = False)
+    type_id = db.Column(db.Integer, db.ForeignKey('activity_types.type_id'), nullable = False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable = False)
+    bot_id = db.Column(db.Integer, db.ForeignKey('bots.bot_id'), nullable = False)
     title = db.Column (db.String(50), nullable = False)
     description = db.Column (db.String(250))
     init_date = db.Column(db.DateTime)
@@ -109,7 +109,39 @@ class Details(db.Model):
     __tablename__ = 'details'
 
     # Clave compuesta
-    user_id = db.Column(db.Integer, db.ForeignKey(users.user_id), primary_key = True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), primary_key = True)
     name_detail = db.Column(db.String(10), primary_key = True)
     description_detail = db.Column(db.String(250))
     serverity = db.Column(db.String(5), default = ServerityEnum.LEVE)
+
+
+class History(db.Model):
+    __tablename__ = 'histories'
+
+    result_id = db.Column(db.Integer, primary_key = True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'))
+
+    first_date_range = db.Column(db.DateTime, nullable = False)
+    end_date_range = db.Column(db.DateTime, nullable = False)
+
+    num_completo = db.Column(db.Integer, default=0)
+    num_pospuesto = db.Column(db.Integer, default=0)
+    num_cancelado = db.Column(db.Integer, default=0)
+    num_pendiente = db.Column(db.Integer, default=0)
+
+    avg_focus = db.Column(db.Float, default=0.0)
+    num_activities = db.Column(db.Integer, default=0)
+
+    total_used_time = db.Column(db.Interval)
+
+    __table_args__ = (
+        db.CheckConstraint('avg_focus >= 0.0', name='check_avg_positive'),
+
+        db.CheckConstraint('num_completo >= 0.0', name='check_num_completo_positive'),
+        db.CheckConstraint('num_pospuesto >= 0.0', name='check_num_pospuesto_positive'),
+        db.CheckConstraint('num_cancelado >= 0.0', name='check_num_cancelado_positive'),
+        db.CheckConstraint('num_pendiente >= 0.0', name='check_num_pendiente_positive'),
+
+        db.CheckConstraint('end_date_range >= first_date_range', name='check_date_order'),
+    )
+
