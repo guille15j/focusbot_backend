@@ -39,3 +39,35 @@ class ActivityType (db.Model):
         CheckConstraint('break_time >= 0', name='check_break_positive'),
         CheckConstraint('num_breaks >= 0', name='check_num_breaks_positive'),
     )
+
+class BotStatus(enum.Enum):
+    OFFLINE = "OFFLINE"
+    BOOTING = "BOOTING"
+    CONFIGURING = "CONFIGURING"
+    IDLE = "IDLE"
+    FOCUSING = "FOCUSING"
+    PAUSED = "PAUSED"
+    BREAK = "BREAK"
+    FINISHED = "FINISHED"
+    ERROR = "ERROR"
+
+
+class Bot(db.Model):
+    __tablename__ = 'bots'
+
+    bot_id = db.Column(db.Integer, primary_key = True)
+    mac_ddr = db.Column(db.String(17), nullable = False)
+    user_id = db.Column(db.Integer, db.ForeignKey(users.user_id), nullable = True) # No es nullable porque si que peude existir un robot al que aun no se le ha asignado nignun usuario
+    custom_name = db.Column(db.String(20), default = 'Focus-Bot') 
+    passKey = db.Column(db.Text, nullable = False) # Passwd para identificarse durante la comunicación
+    access_point = db.Column(db.String(150), nullable = False) # SSID generado por BOT
+    last_sync = db.Column(db.DateTime)
+    status = db.Column(sb.String(20), nullable=False, default=BotStatus.OFFLINE)
+    finware_version = db.Column(db.String(20),nullable = True)
+
+class Activity(db.Model):
+    __tablename__ = 'activities'
+
+    activity_id
+    type_id
+    user_id
