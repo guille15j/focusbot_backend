@@ -99,3 +99,17 @@ class Activity(db.Model):
     state = db.Column(db.String(20), nullable = False, default = ActivityState.PENDIENTE )
     category = db.Column(db.String(20), nullable = False, default = ActivityCategory.ESTUDIOS)
     result = db.Column(db.String(20), nullable = True)
+
+class ServerityEnum (enum.Enum):
+    LEVE = 'LEVE'
+    MEDIO = 'MEDIO'
+    ALTO = 'ALTO'
+
+class Details(db.Model):
+    __tablename__ = 'details'
+
+    # Clave compuesta
+    user_id = db.Column(db.Integer, db.ForeignKey(users.user_id), primary_key = True)
+    name_detail = db.Column(db.String(10), primary_key = True)
+    description_detail = db.Column(db.String(250))
+    serverity = db.Column(db.String(5), default = ServerityEnum.LEVE)
