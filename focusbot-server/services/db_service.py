@@ -65,9 +65,37 @@ class Bot(db.Model):
     status = db.Column(sb.String(20), nullable=False, default=BotStatus.OFFLINE)
     finware_version = db.Column(db.String(20),nullable = True)
 
+class ActivityState(enum.Enum):
+    PENDIENTE = 'PENDIENTE'
+    POSPUESTO = 'POSPUESTO'
+    COMPLETADO = 'COMPLETADO'
+    CANCELADO = 'CANCELADO'
+    CURSO = 'EN CURSO'
+
+class ActivityCategory (enum.Enum):
+    ESTUDIOS = 'ESTUDIOS'
+    LECTURA = 'LECTURA'
+    HOGAR = 'HOGAR'
+    DEPORTES = 'DEPORTES'
+    DESCANSO = 'DESCANSO'
+    OTRAS = 'OTRAS'
+
+class ActivityResults (enum.Enum):
+    COMPLETADO = 'COMPLETADO'
+    PARCIAL = 'PARCIAL'
+    FALLADO = 'FALLADO'
+
 class Activity(db.Model):
     __tablename__ = 'activities'
 
-    activity_id
-    type_id
-    user_id
+    activity_id = db.Column(db.Integer, primary_key = True)
+    type_id = db.Column(db.Integer, db.ForeignKey(activity_types.type_id), nullable = False)
+    user_id = db.Column(db.Integer, db.ForeignKey(users.user_id), nullable = False)
+    bot_id = db.Column(db.Integer, db.ForeignKey(bots.bot_id), nullable = False)
+    title = db.Column (db.String(50), nullable = False)
+    description = db.Column (db.String(250))
+    init_date = db.Column(db.DateTime)
+    end_date = db.Column(db.DateTime)
+    state = db.Column(db.String(20), nullable = False, default = ActivityState.PENDIENTE )
+    category = db.Column(db.String(20), nullable = False, default = ActivityCategory.ESTUDIOS)
+    result = db.Column(db.String(20), nullable = True)
