@@ -1,35 +1,38 @@
 from flask import Flask
-from config import Config
-from services.db_service import db
-from services.mqtt_service import init_mqtt
-# Importaciones corregidas
-from routes.auth import auth_bp
-from routes.activities import activities_bp
-from routes.bot import bot_bp
-from routes.history import history_bp
+from services.db_service import db, User # Importamos db y el modelo User
+import os
 
-def create_app():
-    app = Flask(__name__)
-    app.config.from_object(Config)
+app = Flask(__name__)
 
-    # Inicializar base de datos
-    db.init_app(app)
-    
-    # Inicializar MQTT
-    init_mqtt(app)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@localhost:5432/focusbot_db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    # Registro de Blueprints con sus prefijos
-    app.register_blueprint(auth_bp, url_prefix='/api/auth')
-    app.register_blueprint(activities_bp, url_prefix='/api/activities')
-    app.register_blueprint(bot_bp, url_prefix='/api/bot')
-    app.register_blueprint(history_bp, url_prefix='/api/history')
+db.init_app(app)
 
-    @app.route('/')
-    def index():
-        return {"project": "FocusBot API", "status": "online"}, 200
+with app.app_context():
+    try:
+        db.create_all()
+        print("✅ ¡Tablas creadas correctamente en PostgreSQL!")
+        
+        if not User.query.first():
+            test_user = User(
+                first_name="Admin",
+                last_name="Focus",
+                nickname="admin",
+                email="admin@focusbot.com",
+                password_hash="hash_seguro_123",
+                birth_date="1990-01-01"
+            )
+            db.session.add(test_user)
+            db.session.commit()
+            print(" -> Usuario de prueba creado.")
+            
+    except Exception as e:
+        print(f"❌ Error al conectar o crear tablas: {e}")
 
-    return app
+@app.route('/')
+def index():
+    return "Servidor FocusBot Online y Base de Datos Conectada."
 
 if __name__ == '__main__':
-    app = create_app()
-    app.run(host='0.0.0.0', port=5000)
+    app.run(debug=True, port=5000)
