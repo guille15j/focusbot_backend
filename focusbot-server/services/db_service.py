@@ -1,5 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import datetim
+import enum
 
 db = SQLAlchemy()
 
@@ -34,6 +35,11 @@ class ServerityEnum (enum.Enum):
     LEVE = 'LEVE'
     MEDIO = 'MEDIO'
     ALTO = 'ALTO'
+
+class ActivityResults(enum.Enum):
+    SUCCESS = 'SUCCESS'
+    REJECTED = 'REJECTED' 
+    FAILED = 'FAILED'
 
 # Definicion de los modelos de tablas
 
