@@ -21,3 +21,25 @@ def setFocusSettings(current_user):
 @token_required
 def updateFocusSettings(current_user):
     return None
+
+# ---------------------------------------------------------------------
+
+@activities_bp.route('/', methods=['GET'])
+@token_required
+def getActivities(current_user):
+    return None
+
+@activities_bp.route('/', methods = ['POST'])
+@token_required
+def createActivity(current_user):
+    return None
+
+@activities_bp.route('/<int:activity_id>', methods= ['PUT'])
+@token_required
+def updateActivity(current_user):
+    return None
+
+@activities_bp.route('/<int:activity_id>', methods= ['DELETE'])
+@token_required
+def deleteActivity(current_user):
+    return None
