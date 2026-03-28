@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 from services import *
+from utils import *
 
 auth_bp = Blueprint('auth', __name__) #Nos permite agripar los endpoints en bloques sin que tengan que estar todos en un mismo archivo
 
@@ -28,3 +29,8 @@ def loggin():
     response, status_code = login_user(data)
 
     return jsonify(response), status_code
+
+@auth_bp.route('/me', methods=['GET'])
+@token_required
+def get_my_info(current_user):
+    return jsonify({"username": current_user.username}), 200
