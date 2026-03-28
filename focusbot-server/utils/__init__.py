@@ -7,7 +7,7 @@ from .data_cast import (
     to_str
 )
 
-from .security import generate_token
+from .security import generate_token, token_required
 
 # from utils import *
 __all__ = [
@@ -17,5 +17,6 @@ __all__ = [
     'to_datetime', 
     'to_enum', 
     'to_str',
-    'generate_token'
+    'generate_token',
+    'token_required'
 ]

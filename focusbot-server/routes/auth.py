@@ -33,4 +33,4 @@ def loggin():
 @auth_bp.route('/me', methods=['GET'])
 @token_required
 def get_my_info(current_user):
-    return jsonify({"username": current_user.username}), 200
+    return jsonify({"nickname": current_user.nickname}), 200
