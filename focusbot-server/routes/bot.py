@@ -5,4 +5,4 @@ bot_bp = Blueprint('bot', __name__)
 
 @bot_bp.route('/status', methods=['GET'])
 def bot_status():
-    return jsonify({"status": "connected", "bot_id": "focus_01"}), 200
+    return jsonify({"status": "connected", "bot_id": "focus_02"}), 200

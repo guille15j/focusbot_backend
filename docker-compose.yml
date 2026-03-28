@@ -25,6 +25,8 @@ services:
     container_name: focus_api
     ports:
       - "5000:5000"
+    volumes:
+      - ./focusbot-server:/app
     env_file: .env
     environment:
       - DATABASE_URL=${DATABASE_URL}
