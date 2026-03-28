@@ -1,6 +1,6 @@
 from services.db_service import db, User
 from utils import *
-from werkzeug.security import generate_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
 
 def register_user(data):
     """
@@ -55,3 +55,30 @@ def register_user(data):
     except Exception as e:
         db.session.rollback()
         return {'error':'Error registrando el usuario'}, 500
+
+def login_user(data):
+    identifier = data.get('identifier') 
+    psswd = data.get('password')
+
+    if not identifier:
+        return {'error': 'Faltan credenciales identifier'}, 400
+    if not psswd:
+        return {'error': 'Faltan credenciales password'}, 400
+
+    #Buscamos el usuario
+    user = User.query.filter(
+        (User.email == identifier) | (User.nickname == identifier)
+    ).first()
+
+    if not user:
+        return {'error': 'Usuario no registrado en el sistema'}, 401
+    
+    if not check_password_has(user.password_hash, psswd):
+        # LA comprobacion del has es negativa por loq ue no se puede iniciar sesión
+        return {'error': 'Credenciales inválidas'}, 401
+    
+    return {
+        'message': 'Inicio de sesión completado',
+        'user_id': user.user_id,
+        'nickname': user.nickname
+    }, 200
