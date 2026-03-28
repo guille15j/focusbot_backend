@@ -81,4 +81,4 @@ def login_user(data):
         'message': 'Inicio de sesión completado',
         'user_id': user.user_id,
         'nickname': user.nickname
-    }, 200
+    }, 200 
