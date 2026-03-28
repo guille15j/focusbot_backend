@@ -1,8 +1,15 @@
 from flask import Blueprint, jsonify
-from services.mqtt_service import mqtt_client
+from services import *
+from utils import *
 
 bot_bp = Blueprint('bot', __name__)
 
-@bot_bp.route('/status', methods=['GET'])
+@bot_bp.route('/check', methods=['GET'])
 def bot_status():
-    return jsonify({"status": "connected", "bot_id": "focus_02"}), 200
+    return jsonify({"msg": "Api bot lista"}), 200
+
+@bot_bp.route('/pair',methods=['POST'])
+@token_required
+def bot_pair(current_user):
+    
+    return jsonify({"msg": "Api bot lista"}), 200

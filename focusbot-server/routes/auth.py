@@ -30,6 +30,7 @@ def loggin():
 
     return jsonify(response), status_code
 
+# Ejemplo de uso de token
 @auth_bp.route('/me', methods=['GET'])
 @token_required
 def get_my_info(current_user):
