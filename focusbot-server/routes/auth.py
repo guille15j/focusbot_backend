@@ -33,21 +33,30 @@ def loggin():
 @auth_bp.route('/user/profile',methods=['GET'])
 @token_required
 def userProfileGET(current_user):
-    data = None
+    data = request.get_json()
+
+    if not data:
+        return jsonify({'error':'Datos vacios en la petición'}),400
 
     return data
 
 @auth_bp.route('/user/profile', methods = ['POST'])
 @token_required
 def userProfilePOST(current_user):
-    data = None
+    data = request.get_json()
+
+    if not data:
+        return jsonify({'error':'Datos vacios en la petición'}),400
 
     return data
 
 @auth_bp.route('/user/account', methods = ['DELETE'])
 @token_required
 def deleteUser(current_user):
-    data = None
+    data = request.get_json()
+
+    if not data:
+        return jsonify({'error':'Datos vacios en la petición'}),400
     
     return data
     return jsonify({"nickname": current_user.nickname}), 200
