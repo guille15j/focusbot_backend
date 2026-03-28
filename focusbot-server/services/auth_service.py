@@ -73,12 +73,12 @@ def login_user(data):
     if not user:
         return {'error': 'Usuario no registrado en el sistema'}, 401
     
-    if not check_password_has(user.password_hash, psswd):
+    if not check_password_hash(user.password_hash, psswd):
         # LA comprobacion del has es negativa por loq ue no se puede iniciar sesión
         return {'error': 'Credenciales inválidas'}, 401
     
     return {
-        'message': 'Inicio de sesión completado',
+        'message': 'Inicio de sesion completado',
         'user_id': user.user_id,
         'nickname': user.nickname
     }, 200 
