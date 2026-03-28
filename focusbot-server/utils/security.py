@@ -7,13 +7,16 @@ def generate_token(user_id):
     Creacion de token con duracion determinada con contendio del user_id
     """
     try:
+
+        now = datetime.datetime.now(datetime.timezone.utc)
+
         payload = {
             # Expedicion en 24 horas desde ahora
-            'exp': datetime.datetime.utcnow() + datetime.timedelta(days=1),
+            'exp': now + datetime.timedelta(days=1),
 
             # Iniciacion desde el momento actual
-            'iat': datetime.datetime.utcnow()
-            'sub': user_id #Sub == subject - sujeto en este caso ID del susuario
+            'iat': now,
+            'sub': str(user_id) #Sub == subject - sujeto en este caso ID del susuario
         }
 
         return jwt.encode(
