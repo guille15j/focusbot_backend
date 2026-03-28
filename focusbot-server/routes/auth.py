@@ -30,8 +30,24 @@ def loggin():
 
     return jsonify(response), status_code
 
-# Ejemplo de uso de token
-@auth_bp.route('/me', methods=['GET'])
+@auth_bp.route('/user/profile',methods=['GET'])
 @token_required
-def get_my_info(current_user):
+def userProfileGET(current_user):
+    data = None
+
+    return data
+
+@auth_bp.route('/user/profile', methods = ['POST'])
+@token_required
+def userProfilePOST(current_user):
+    data = None
+
+    return data
+
+@auth_bp.route('/user/account', methods = ['DELETE'])
+@token_required
+def deleteUser(current_user):
+    data = None
+    
+    return data
     return jsonify({"nickname": current_user.nickname}), 200

@@ -11,5 +11,11 @@ def bot_status():
 @bot_bp.route('/pair',methods=['POST'])
 @token_required
 def bot_pair(current_user):
+    data = request.get_json()
     
-    return jsonify({"msg": "Api bot lista"}), 200
+    if not data:
+        return jsonify({'error':'Datos vacios en la petición'}),400
+    
+    response, status_code = login_user(data)
+
+    return jsonify(response), status_code
