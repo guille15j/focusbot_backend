@@ -51,7 +51,14 @@ def register_user(data):
         db.session.add(user)
         db.session.commit()
 
-        return {'message':'Usuario creado correctamente', 'id':user.user_id}, 201
+        token = generate_token(user.user_id)
+
+        return {
+            'message':'Usuario creado correctamente', 
+            'token': token,
+            'id':user.user_id
+        }, 201
+
     except Exception as e:
         db.session.rollback()
         return {'error':'Error registrando el usuario'}, 500
@@ -76,9 +83,14 @@ def login_user(data):
     if not check_password_hash(user.password_hash, psswd):
         # LA comprobacion del has es negativa por loq ue no se puede iniciar sesión
         return {'error': 'Credenciales inválidas'}, 401
+
+    token = generate_token(user.user_id)
     
     return {
         'message': 'Inicio de sesion completado',
-        'user_id': user.user_id,
-        'nickname': user.nickname
+        'token':token,
+        'user': {
+            'user_id': user.user_id,
+            'nickname': user.nickname
+        }
     }, 200 
