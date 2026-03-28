@@ -1,38 +1,33 @@
 from flask import Flask
-from services.db_service import db, User # Importamos db y el modelo User
-import os
+from services.db_service import db
+from routes import *
 
-app = Flask(__name__)
+def create_app():
+    app = Flask(__name__)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@localhost:5432/focusbot_db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    #Configuracion del PostgreSQL
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@localhost:5432/focusbot_db'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db.init_app(app)
+    #Iniciación de la bd
+    db.init_app(app)
 
-with app.app_context():
-    try:
-        db.create_all()
-        print("✅ ¡Tablas creadas correctamente en PostgreSQL!")
-        
-        if not User.query.first():
-            test_user = User(
-                first_name="Admin",
-                last_name="Focus",
-                nickname="admin",
-                email="admin@focusbot.com",
-                password_hash="hash_seguro_123",
-                birth_date="1990-01-01"
-            )
-            db.session.add(test_user)
-            db.session.commit()
-            print(" -> Usuario de prueba creado.")
-            
-    except Exception as e:
-        print(f"❌ Error al conectar o crear tablas: {e}")
+    app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(bot_bp, url_prefix='/bot')
+    app.register_blueprint(activities_bp, url_prefix='/activities')
+    app.register_blueprint(history_bp, url_prefix='/history')
 
-@app.route('/')
-def index():
-    return "Servidor FocusBot Online y Base de Datos Conectada."
+    # Configuración 
+    with app.app_context():
+        try:
+            db.create_all()
+            print("🟢 Conexión exitosa: Tablas sincronizadas en PostgreSQL.")
+        except Exception as e:
+            print(f"🔴 Error al sincronizar la base de datos: {e}")
+
+    return app
 
 if __name__ == '__main__':
+    app = create_app()
+
     app.run(debug=True, port=5000)
