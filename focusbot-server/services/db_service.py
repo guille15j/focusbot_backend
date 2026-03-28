@@ -1,5 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetim
+from datetime import datetime
 import enum
 
 db = SQLAlchemy()
