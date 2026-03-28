@@ -19,3 +19,18 @@ def bot_pair(current_user):
     response, status_code = login_user(data)
 
     return jsonify(response), status_code
+
+@bot_bp.route('/status', methods=['GET'])
+@token_required
+def getStatusBot(current_user):
+    return None
+
+@bot_bp.route('/config', methods=['PATCH'])
+@token_required
+def updateConfig(current_user):
+    return None
+
+@bot_bp.route('/unpair', methods=['DELETE'])
+@token_required
+def deleteBot(current_user):
+    return None
