@@ -1,13 +1,13 @@
 from flask import Flask
 from services.db_service import db
+from config import Config
 from routes import *
 
 def create_app():
     app = Flask(__name__)
 
     #Configuracion del PostgreSQL
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@localhost:5432/focusbot_db'
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config.from_object(Config)
 
     #Iniciación de la bd
     db.init_app(app)
@@ -30,4 +30,4 @@ def create_app():
 if __name__ == '__main__':
     app = create_app()
 
-    app.run(debug=True, port=5000)
+    app.run(debug=True,host='0.0.0.0', port=5000)

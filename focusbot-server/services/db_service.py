@@ -31,7 +31,7 @@ class ActivityCategory (enum.Enum):
     DESCANSO = 'DESCANSO'
     OTRAS = 'OTRAS'
 
-class ServerityEnum (enum.Enum):
+class SeverityEnum (enum.Enum):
     LEVE = 'LEVE'
     MEDIO = 'MEDIO'
     ALTO = 'ALTO'

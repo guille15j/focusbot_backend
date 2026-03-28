@@ -42,7 +42,7 @@ def register_user(data):
             email = email,
             birth_date = birth_date,
             password_hash = hash_pswd,
-            phone = to_str(data.get('phone'),20)
+            phone = to_str(data.get('phone'),20),
             profile_img = data.get('profile_img'),
             timezone = to_str(data.get('timezone'),50)
         ) 

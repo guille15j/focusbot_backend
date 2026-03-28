@@ -16,4 +16,4 @@ def register():
     
     response, status_code = register_user(data)
 
-    retrun jsonify(response), status_code
+    return jsonify(response), status_code
