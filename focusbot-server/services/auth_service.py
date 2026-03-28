@@ -1,4 +1,5 @@
 from services.db_service import db, User
+from utils import *
 from werkzeug.security import generate_password_hash
 
 def register_user(data):
@@ -15,8 +16,8 @@ def register_user(data):
     if any(data.get(field) is None for field in required_fields):
         return {'error': 'Faltan datos obligatorios'}, 400
 
-    email = data['email']
-    nickname = data['nickname']
+    email = to_str(data['email'],100).lower()
+    nickname = to_str(data['nickname'],20)
 
     # Buscamos en la base de datos usando el moodelado de USer
     if User.query.filter_by(email = email).first():
@@ -26,9 +27,9 @@ def register_user(data):
         return {'error':'Nickname ya registrado en el sistema'}, 400
 
     try:
-        first_name = data['first_name']
-        last_name = data['last_name']
-        birth_date = data['birth_date']
+        first_name = to_str(data['first_name'],50)
+        last_name = to_str(data['last_name'],50)
+        birth_date = to_date(data['birth_date'])
         psswd = data['password']
 
         # Creacion del hash
@@ -41,9 +42,9 @@ def register_user(data):
             email = email,
             birth_date = birth_date,
             password_hash = hash_pswd,
-            phone = data.get('phone'),
-            profile_img = data.get('phone'),
-            timezone = data.get('timezone')
+            phone = to_str(data.get('phone'),20)
+            profile_img = data.get('profile_img'),
+            timezone = to_str(data.get('timezone'),50)
         ) 
 
     
