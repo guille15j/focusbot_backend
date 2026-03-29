@@ -34,3 +34,20 @@ def updateConfig(current_user):
 @token_required
 def deleteBot(current_user):
     return None
+
+# ENDPOINTS DE PRUEBA -----------------------------------------------------------
+@bot_bp.route('/my-robot', methods=['GET'])
+@token_required
+def get_my_robot(current_user):
+    from services.db_service import Bot
+    bot = Bot.query.filter_by(user_id=current_user.user_id).first()
+    
+    if not bot:
+        return jsonify({"msg": "No tienes ningún robot vinculado"}), 404
+        
+    return jsonify({
+        "name": bot.custom_name,
+        "mac": bot.mac_address,
+        "status": bot.status.value,
+        "ssid": bot.access_point_ssid
+    }), 200
