@@ -1,5 +1,61 @@
-
+from services.db_service import db, Bot, BotStatus
+import secrets
 
 def link_bot(data, user_id):
 
-    return data;
+    required_fields = [ 'mac_address', 'custom_name']
+    if any(data.get(field) is None for field in required_fields):
+        return {'error': 'Faltan datos obligatorios para linkar un BOT'}, 400
+
+    mac = data.get('mac_address')
+    name = data.get('custom_name')
+
+    if not mac:
+        return {'error': 'La dirección MAC es obligatoria'}, 400
+    
+    if not name:
+        return {'error': 'El nombre es obligatoria'}, 400
+
+    bot = Bot.query.filter_by(mac_address=mac).first()
+
+    # Una vez obtenido el bot vamos a ver si tenemos ese bot registrado con un usuario o si esta libre
+    # Enc aso de que este lirbe podremos asignarlo enc aso de que no lo esté protegeremos y blindaremos el bot
+    if bot:
+        if bot.user_id is not None:
+            #En caso de que el parametro de user_id de neustro bot no sea none lo que significa que este bot SI tiene dueño
+            return {'error': f'Este FocusBot con nombre {bot.custom_name} ya pertenece a otro usuario'}, 403
+        
+        # En este caso no estará asociado a ningun usuairo y podremos asociarlo al usuario que tenemos logueado
+        bot.user_id = user_id
+        bot.custom_name = name
+    else:
+        #EL bot no se ha encontrado en el sistema asique lo crearemos
+        generated_key = secrets.token_hex(16) #contraseña única y aleatoria de 32 caracteres (hexadecimal de 16 bytes)
+        # Cuando el robot se conecta por primera vez, la API se la entrega. A partir de ese momento, el robot la usará para identificarse ante el Broker MQTT
+
+        
+        bot = Bot(
+            mac_address=mac,
+            user_id=user_id,
+            custom_name=name,
+            pass_key=generated_key,
+            access_point_ssid=f"FocusBot_{mac.replace(':', '')[-4:]}", #Red que crea la ESP para que podamos conectarnos a ellos y ajustar la ssiud de nuestra wifi
+            status=BotStatus.IDLE
+        )
+        db.session.add(bot)
+
+    try:
+        db.session.commit()
+        return {
+            'message': 'FocusBot vinculado con éxito',
+            'bot': {
+                'id': bot.bot_id,
+                'name': bot.custom_name,
+                'pass_key': bot.pass_key,
+                'ssid': bot.access_point_ssid
+            }
+        }, 201
+
+    except Exception as e:
+        db.session.rollback()
+        return {'error': 'Error al guardar en la base de datos'}, 500

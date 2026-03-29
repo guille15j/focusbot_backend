@@ -16,7 +16,7 @@ def bot_pair(current_user):
     if not data:
         return jsonify({'error':'Datos vacios en la petición'}),400
     
-    response, status_code = login_user(data)
+    response, status_code = link_bot(data)
 
     return jsonify(response), status_code
 
