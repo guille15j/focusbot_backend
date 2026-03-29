@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from services import *
 from utils import *
 
@@ -14,9 +14,9 @@ def bot_pair(current_user):
     data = request.get_json()
     
     if not data:
-        return jsonify({'error':'Datos vacios en la petición'}),400
+        return jsonify({'error':'Datos vacios en la petición de vinculación'}),400
     
-    response, status_code = link_bot(data)
+    response, status_code = link_bot(data, current_user.user_id)
 
     return jsonify(response), status_code
 
