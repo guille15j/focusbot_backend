@@ -1,25 +1,25 @@
 import paho.mqtt.client as mqtt
 import os
 
-# Usamos el nombre que Mosquitto ya reconoce de tus intentos anteriores
+# Usamos el nombre que Mosquitto reconoce
 mqtt_client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION2, 
                           client_id="focus_api_server_principal")
 
 def on_connect(client, userdata, flags, rc, properties):
     if rc == 0:
-        print("✅ API conectada al Broker MQTT")
+        print("🟢 API conectada al Broker MQTT")
     else:
-        print(f"❌ Error de conexión. Código: {rc}")
+        print(f"🔴 Error de conexión. Código: {rc}")
 
 def init_mqtt(app):
     mqtt_client.on_connect = on_connect
     try:
-        # "mqtt" es el nombre del servicio en tu docker-compose.yml
+        # "mqtt" es el nombre del servicio docker-compose.yml
         mqtt_client.connect("mqtt", 1883, 60)
         mqtt_client.loop_start() 
-        print("🚀 Bucle de escucha MQTT iniciado")
+        print("Bucle de escucha MQTT iniciado")
     except Exception as e:
-        print(f"⚠️ No se pudo conectar el cable invisible: {e}")
+        print(f"🔴 No se pudo conectar el cable invisible: {e}")
 
 def asegurar_conexion():
     """Función para que el endpoint verifique si el cable sigue puesto"""
