@@ -11,6 +11,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - focus_net 
 
   mqtt:
     image: eclipse-mosquitto:2
@@ -19,10 +21,15 @@ services:
       - "1883:1883"
     volumes:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+    networks:
+      - focus_net
 
   api:
     build: ./focusbot-server
     container_name: focus_api
+    restart: always
     ports:
       - "5000:5000"
     volumes:
@@ -30,10 +37,16 @@ services:
     env_file: .env
     environment:
       - DATABASE_URL=${DATABASE_URL}
-      - MQTT_BROKER=${MQTT_BROKER}
+      - MQTT_BROKER=focus_mqtt # Usamos el nombre del servicio
       - SECRET_KEY=${SECRET_KEY}
     depends_on:
       db:
         condition: service_healthy
       mqtt:
         condition: service_started
+    networks:
+      - focus_net
+
+networks:
+  focus_net:
+    driver: bridge

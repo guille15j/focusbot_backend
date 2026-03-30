@@ -3,3 +3,5 @@ file_struct.md
 **/__pycache__/
 *.py[cod]
 *$py.class
+**/log/
+**/data/

@@ -1,6 +1,8 @@
 from flask import Blueprint, jsonify, request
 from services import *
 from utils import *
+import time
+from services.mqtt_service import mqtt_client
 
 bot_bp = Blueprint('bot', __name__)
 
@@ -55,17 +57,28 @@ def get_my_robot(current_user):
 # Testeo de MQTT
 @bot_bp.route('/command', methods=['POST'])
 def send_command():
-    
-    from app import mqtt    
-
     data = request.get_json()
     mac = data.get('mac')
-    comando = data.get('comando') # Ejemplo: "FOCUS_ON" o "FOCUS_OFF"
+    comando = data.get('comando')
 
     if not mac or not comando:
         return jsonify({"error": "Falta MAC o comando"}), 400
 
+    # 1. Verificamos que el cable con el broker esté puesto
+    if not asegurar_conexion():
+        return jsonify({"error": "No se pudo reconectar con el Broker"}), 503
+
     topic = f"focusapp/{mac}/command"
-    mqtt.publish(topic, comando)
     
-    return jsonify({"status": "Enviado", "topic": topic, "msg": comando}), 200
+    try:
+        # 2. Publicamos el mensaje (QoS 0 es más rápido para pruebas)
+        mqtt_client.publish(topic, comando, qos=0)
+        print(f"DEBUG: Enviado {comando} al tópico {topic}")
+        
+        return jsonify({
+            "status": "Enviado",
+            "destino": topic,
+            "comando": comando
+        }), 200
+    except Exception as e:
+        return jsonify({"status": "Error", "msg": str(e)}), 500
