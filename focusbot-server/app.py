@@ -1,5 +1,5 @@
 from flask import Flask
-from flask-mqtt import Mqtt
+from flask_mqtt import Mqtt
 from services.db_service import db
 from config import Config
 from routes import *
@@ -28,7 +28,7 @@ def create_app():
 
 
     # Configuraicón de broker mqtt
-    app.config['MQTT_BROKER_URL'] = 'broker.hivemq.com'     # Configuracion direccion servidor (Broker)
+    app.config['MQTT_BROKER_URL'] = 'focus_mqtt'     # Configuracion direccion servidor (Broker)
     app.config['MQTT_BROKER_PORT'] = 1883                   # Configuracion del puerto 
     app.config['MQTT_KEEPALIVE'] = 5                        # Conexiones
     app.config['MQTT_TLS_ENABLED'] = False                  
