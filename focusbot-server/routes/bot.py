@@ -51,3 +51,21 @@ def get_my_robot(current_user):
         "status": bot.status.value,
         "ssid": bot.access_point_ssid
     }), 200
+
+# Testeo de MQTT
+@bot_bp.route('/command', methods=['POST'])
+def send_command():
+    
+    from app import mqtt    
+
+    data = request.get_json()
+    mac = data.get('mac')
+    comando = data.get('comando') # Ejemplo: "FOCUS_ON" o "FOCUS_OFF"
+
+    if not mac or not comando:
+        return jsonify({"error": "Falta MAC o comando"}), 400
+
+    topic = f"focusapp/{mac}/command"
+    mqtt.publish(topic, comando)
+    
+    return jsonify({"status": "Enviado", "topic": topic, "msg": comando}), 200

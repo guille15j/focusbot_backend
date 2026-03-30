@@ -4,6 +4,8 @@ from services.db_service import db
 from config import Config
 from routes import *
 
+mqtt = Mqtt()
+
 def create_app():
     app = Flask(__name__) # Instancia de Flask
 
@@ -12,6 +14,17 @@ def create_app():
 
     #Iniciación de la bd
     db.init_app(app)
+    
+    # Configuraicón de broker mqtt
+    app.config['MQTT_BROKER_URL'] = 'focus_mqtt'     # Configuracion direccion servidor (Broker)
+    app.config['MQTT_BROKER_PORT'] = 1883                   # Configuracion del puerto 
+    app.config['MQTT_KEEPALIVE'] = 5                        # Conexiones
+    app.config['MQTT_TLS_ENABLED'] = False                  
+
+    app.config['MQTT_USERNAME'] = '' 
+    app.config['MQTT_PASSWORD'] = ''
+
+    mqtt.init_app(app) # Iniciualizacion del cliente para poder enviar y recibir mensajes por MQTT
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(bot_bp, url_prefix='/bot')
@@ -25,15 +38,6 @@ def create_app():
             print("🟢 Conexión exitosa: Tablas sincronizadas en PostgreSQL.")
         except Exception as e:
             print(f"🔴 Error al sincronizar la base de datos: {e}")
-
-
-    # Configuraicón de broker mqtt
-    app.config['MQTT_BROKER_URL'] = 'focus_mqtt'     # Configuracion direccion servidor (Broker)
-    app.config['MQTT_BROKER_PORT'] = 1883                   # Configuracion del puerto 
-    app.config['MQTT_KEEPALIVE'] = 5                        # Conexiones
-    app.config['MQTT_TLS_ENABLED'] = False                  
-
-    mqtt = Mqtt (app) # Iniciualizacion del cliente para poder enviar y recibir mensajes por MQTT
 
     return app
 
