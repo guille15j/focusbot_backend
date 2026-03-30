@@ -58,4 +58,4 @@ def link_bot(data, user_id):
 
     except Exception as e:
         db.session.rollback()
-        return {'error': 'Error al guardar en la base de datos'}, 500
+        return {'error': f'Error al guardar en la base de datos\n{str(e)}'}, 500
