@@ -38,21 +38,30 @@ def deleteBot(current_user):
     return None
 
 # ENDPOINTS DE PRUEBA -----------------------------------------------------------
-@bot_bp.route('/my-robot', methods=['GET'])
+@bot_bp.route('/bots', methods=['GET'])
 @token_required
-def get_my_robot(current_user):
+def get_my_robots(current_user):
     from services.db_service import Bot
-    bot = Bot.query.filter_by(user_id=current_user.user_id).first()
+    bots = Bot.query.filter_by(user_id=current_user.user_id).all()
     
-    if not bot:
-        return jsonify({"msg": "No tienes ningún robot vinculado"}), 404
+    if not bots:
+        return jsonify([]), 200
+
+    lista_bots = []
+    for bot in bots:
+        lista_bots.append(
+            {
+            "bot_id": bot.bot_id,
+            "name": bot.custom_name,
+            "mac_address": bot.mac_address,
+            "status": bot.status.value,
+            "ssid": bot.access_point_ssid,
+            "version": bot.firmware_version,
+            "last_sync": bot.last_sync.isoformat() if bot.last_sync else None
+            }
+        )
         
-    return jsonify({
-        "name": bot.custom_name,
-        "mac": bot.mac_address,
-        "status": bot.status.value,
-        "ssid": bot.access_point_ssid
-    }), 200
+    return jsonify(output), 200
 
 # Testeo de MQTT
 @bot_bp.route('/command', methods=['POST'])
