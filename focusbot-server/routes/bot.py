@@ -61,7 +61,7 @@ def get_my_robots(current_user):
             }
         )
         
-    return jsonify(output), 200
+    return jsonify(lista_bots), 200
 
 # Testeo de MQTT
 @bot_bp.route('/command', methods=['POST'])
