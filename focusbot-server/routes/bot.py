@@ -7,7 +7,7 @@ from services.mqtt_service import mqtt_client
 bot_bp = Blueprint('bot', __name__)
 
 @bot_bp.route('/check', methods=['GET'])
-def bot_status():
+def bot_check():
     return jsonify({"msg": "Api bot lista"}), 200
 
 @bot_bp.route('/pair',methods=['POST'])
@@ -22,20 +22,12 @@ def bot_pair(current_user):
 
     return jsonify(response), status_code
 
-@bot_bp.route('/status', methods=['GET'])
+@bot_bp.route('/getByUser',methods=['GET'])
 @token_required
-def getStatusBot(current_user):
-    return None
+def listadoBots(current_user):
 
-@bot_bp.route('/config', methods=['PATCH'])
-@token_required
-def updateConfig(current_user):
-    return None
-
-@bot_bp.route('/unpair', methods=['DELETE'])
-@token_required
-def deleteBot(current_user):
-    return None
+    response, status_code = getBotsByUser(current_user)
+    return jsonify(response), status_code
 
 # ENDPOINTS DE PRUEBA -----------------------------------------------------------
 @bot_bp.route('/bots', methods=['GET'])

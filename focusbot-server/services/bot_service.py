@@ -1,5 +1,36 @@
-from services.db_service import db, Bot, BotStatus
+from services.db_service import db, Bot, BotStatus, User
 import secrets
+
+def getBotsByUser(current_user):
+    user = User.query.filter(User.user_id == current_user.user_id).first()
+
+    if not user:
+        return {'error':'Usuario no registrado en el sistema.'}, 404
+
+    try:
+        bots = Bot.query.filter_by(user_id=current_user.user_id).all()
+
+        if not bots:
+            return {"message": "No hay bots registrados para este usuario", "bots": []}, 200
+
+        
+        bots_usr =[]
+        for bot in bots:
+            bots_usr.append(
+                {
+                "bot_id": bot.bot_id,
+                "name": bot.custom_name,
+                "mac_address": bot.mac_address,
+                "status": bot.status.value,
+                "ssid": bot.access_point_ssid,
+                "version": bot.firmware_version,
+                "last_sync": bot.last_sync.isoformat() if bot.last_sync else None
+                }
+            )
+
+        return {"bots": bots_usr}, 200
+    except Exception as e:
+        return {'error':f'Error enla carga de bots del usuario - {e}'}, 500
 
 def link_bot(data, user_id):
 
