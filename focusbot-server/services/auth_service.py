@@ -94,3 +94,33 @@ def login_user(data):
             'nickname': user.nickname
         }
     }, 200 
+
+def reset_password(data):
+    identifier = data.get('identifier') 
+    psswd = data.get('password') # Si las contraseñas no coinciden la app no mandara la peticion, solo se recibira una de ellas
+
+    if not identifier:
+        return {'error': 'Faltan credenciales identifier'}, 400
+    if not psswd:
+        return {'error': 'Faltan credenciales password'}, 400
+
+    #Buscamos el usuario
+    user = User.query.filter(
+        (User.email == identifier) | (User.nickname == identifier)
+    ).first()
+
+    if not user:
+        return {'error': 'Usuario no registrado en el sistema'}, 401
+    
+    if check_password_hash(user.password_hash, psswd):
+        return {'error': 'No puedes usar la misma contraseña.'}, 422 #No cumple los requitisitos
+
+    try:
+        user.password_hash = generate_password_hash(psswd)
+        db.session.commit()
+
+        return {'message': 'Cambio de contraseña completado'}, 200
+
+    except Exception as e:
+        db.session.rollback()
+        return {'error': f'Error actualizando la contraseña \n{e}'}, 500

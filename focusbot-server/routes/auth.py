@@ -37,3 +37,18 @@ def loggin():
     response, status_code = login_user(data)
 
     return jsonify(response), status_code
+
+@auth_bp.route('/change/password', methods=['POST'])
+def resetPswd():
+    """
+    Permite a un usuario ya existente modificar su contraseña
+    """
+
+    data = request.get_json()
+
+    if not data:
+        return jsonify({"error":"Datos incorrectos recibidos por el servidor"}), 400
+
+    response, status_code = reset_password(data)
+
+    return jsonify(response), status_code
