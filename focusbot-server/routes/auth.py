@@ -10,6 +10,9 @@ def check():
 
 @auth_bp.route('/register',methods=['POST'])
 def register():
+    """
+    Permite registrar un usuario en el sistema
+    """
     data = request.get_json()
 
     if not data:
@@ -21,6 +24,11 @@ def register():
 
 @auth_bp.route('/login', methods=['POST'])
 def loggin():
+    """
+    Permite gestionar el acceso con credenciales de un usuario devilviendo un 
+    token de acceso gestionado con JWT que la aplicacion usará para todas las peticiones
+    que lo requieran
+    """
     data = request.get_json()
     
     if not data:
@@ -29,34 +37,3 @@ def loggin():
     response, status_code = login_user(data)
 
     return jsonify(response), status_code
-
-@auth_bp.route('/user/profile',methods=['GET'])
-@token_required
-def userProfileGET(current_user):
-    data = request.get_json()
-
-    if not data:
-        return jsonify({'error':'Datos vacios en la petición'}),400
-
-    return data
-
-@auth_bp.route('/user/profile', methods = ['POST'])
-@token_required
-def userProfilePOST(current_user):
-    data = request.get_json()
-
-    if not data:
-        return jsonify({'error':'Datos vacios en la petición'}),400
-
-    return data
-
-@auth_bp.route('/user/account', methods = ['DELETE'])
-@token_required
-def deleteUser(current_user):
-    data = request.get_json()
-
-    if not data:
-        return jsonify({'error':'Datos vacios en la petición'}),400
-    
-    return data
-    return jsonify({"nickname": current_user.nickname}), 200
