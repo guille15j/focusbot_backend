@@ -18,6 +18,7 @@ def create_app():
     app.register_blueprint(bot_bp, url_prefix='/bot')
     app.register_blueprint(activities_bp, url_prefix='/activities')
     app.register_blueprint(history_bp, url_prefix='/history')
+    app.register_blueprint(user_bp, url_prefix='/users')
 
     #Sincronización de Base de Datos
     with app.app_context():

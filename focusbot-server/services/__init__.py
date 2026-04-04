@@ -2,6 +2,7 @@ from .db_service import db, User, Bot, Activity, ActivityState, BotStatus
 from .auth_service import register_user, login_user, reset_password
 from .mqtt_service import init_mqtt, mqtt_client, asegurar_conexion
 from .bot_service import link_bot
+from .user_service import updateUserPatch, getUser
 
 __all__ = [
     'db', 
@@ -13,5 +14,7 @@ __all__ = [
     'init_mqtt',
     'asegurar_conexion',
     'link_bot',
-    'reset_password'
+    'reset_password',
+    'updateUserPatch',
+    'getUser'
 ]
