@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify
 from utils import *
+from services import *
 
 activities_bp = Blueprint('activities', __name__)
 
@@ -27,7 +28,9 @@ def updateFocusSettings(current_user):
 @activities_bp.route('/', methods=['GET'])
 @token_required
 def getActivities(current_user):
-    return None
+    response, status_code = getActivitiesUsr(current_user)
+    
+    return jsonify(response), status_code
 
 @activities_bp.route('/', methods = ['POST'])
 @token_required
