@@ -45,7 +45,7 @@ def getActivity(current_user, activity_id):
     bot = Bot.query.filter(Bot.bot_id == activity.bot_id).frist()
 
     if not bot:
-        return {'error' : 'La actividad no tiene un Bot asignado'}. 404
+        return {'error' : 'La actividad no tiene un Bot asignado'}, 404
 
     act_type = ActivityType.query.filter(ActivityType.type_id == activity.type_id).frist()
 
