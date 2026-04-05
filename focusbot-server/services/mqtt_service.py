@@ -13,9 +13,16 @@ def on_connect(client, userdata, flags, rc, properties):
 
 def init_mqtt(app):
     mqtt_client.on_connect = on_connect
+
+    user = os.getenv('MQTT_USER', 'admin')
+    password = os.getenv('MQTT_PASSWORD', 'focusbot2026')
+    mqtt_client.username_pw_set(user, password)
+
     try:
-        # "mqtt" es el nombre del servicio docker-compose.yml
-        mqtt_client.connect("mqtt", 1883, 60)
+        
+        host = os.getenv('MQTT_BROKER', 'focus_mqtt')
+        mqtt_client.connect(host, 1883, 60)
+
         mqtt_client.loop_start() 
         print("Bucle de escucha MQTT iniciado")
     except Exception as e:

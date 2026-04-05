@@ -20,7 +20,7 @@ services:
     ports:
       - "1883:1883"
     volumes:
-      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - ./mosquitto:/mosquitto/config
       - ./mosquitto/data:/mosquitto/data
       - ./mosquitto/log:/mosquitto/log
     networks:
@@ -37,7 +37,10 @@ services:
     env_file: .env
     environment:
       - DATABASE_URL=${DATABASE_URL}
-      - MQTT_BROKER=focus_mqtt # Usamos el nombre del servicio
+      - MQTT_BROKER=focus_mqtt
+      - MQTT_USER=${MQTT_USER}
+      - MQTT_PASSWORD=${MQTT_PASSWORD}
+      - MQTT_PORT=${MQTT_PORT}
       - SECRET_KEY=${SECRET_KEY}
     depends_on:
       db:
