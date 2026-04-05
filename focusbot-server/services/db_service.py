@@ -68,10 +68,10 @@ class ActivityType (db.Model):
 
     type_id = db.Column(db.Integer, primary_key= True)
     name_type = db.Column(db.String(50), nullable =False)
-    total_time = db.Column(db.Integer, nullable = False)
-    rest_time = db.Column(db.Integer, default = 0)
-    break_time = db.Column(db.Integer, default = 0)
-    num_breaks = db.Column(db.Integer, default = 0)
+    work_duration = db.Column(db.Integer, nullable = False)
+    short_break = db.Column(db.Integer, default = 0)
+    long_break = db.Column(db.Integer, default = 0)
+    cycles_before_long = db.Column(db.Integer, default = 0)
 
     # Constraints
     __table_args__ = (
