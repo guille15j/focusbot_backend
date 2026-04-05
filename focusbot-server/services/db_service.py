@@ -75,11 +75,11 @@ class ActivityType (db.Model):
 
     # Constraints
     __table_args__ = (
-        db.CheckConstraint('rest_time < total_time', name='check_rest_less_than_total'),
-        db.CheckConstraint('total_time >= 0', name='check_total_positive'),
-        db.CheckConstraint('rest_time >= 0', name='check_rest_positive'),
-        db.CheckConstraint('break_time >= 0', name='check_break_positive'),
-        db.CheckConstraint('num_breaks >= 0', name='check_num_breaks_positive'),
+        db.CheckConstraint('work_duration >= 0', name='check_work_duration_positive'),
+        db.CheckConstraint('short_break >= 0', name='check_short_break_positive'),
+        db.CheckConstraint('long_break >= 0', name='check_long_break_positive'),
+        db.CheckConstraint('cycles_before_long >= 0', name='check_cycles_before_long_positive'),
+        db.CheckConstraint('work_duration + short_break + long_break >= 0', name='check_total_duration_positive'),
     )
 
 class Bot(db.Model):
