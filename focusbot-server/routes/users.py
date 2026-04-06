@@ -6,18 +6,42 @@ user_bp = Blueprint('users', __name__)
 
 @user_bp.route("/update/<int:user_id>",methods=['PATCH'])
 @token_required
-def userUpdate(data, user_id):
+def userUpdate(current_user):
     data = request.get_json()
 
     if not data:
         return jsonify({"error":"No se han enviado campos para actualizar"}), 400
 
-    response, status_code = updateUserPatch(user_id, data)
+    response, status_code = updateUserPatch(current_user.user_id, data)
 
     return jsonify(response), status_code
 
-@user_bp.route("/<int:user_id>",methods=['GET'])
-def getUserById(user_id):
-    response, status_code = getUser(user_id)
+@user_bp.route("/user",methods=['GET'])
+@token_required
+def getUserById(current_user):
+    response, status_code = getUser(current_user)
 
     return jsonify(response), status_code
+
+@user_bp.route("/detail", methods=['GET'])
+@token_required
+def getUserDetail(current_user):
+    response, status_code = getDetail(current_user)
+
+    return jsonify(response), status_code
+
+@user_bp.route("/detail", methods=['PUT', 'PATCH', 'POST'])
+@token_required
+def manageUserDetail(current_user):
+    data = request.get_json()
+
+    if not data:
+        return jsonify({"error":"No se han enviado campos en la petición."}), 400
+    
+    if request.method == 'POST':
+        response, status = createDetail(current_user, data)
+
+    if request.method in ('PUT','PATCH'):
+        response, status = updateDetail(current_user, data)
+
+    return jsonify(response), status

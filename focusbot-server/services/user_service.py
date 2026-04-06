@@ -1,4 +1,4 @@
-from services.db_service import db, User
+from services.db_service import db, User, Detail, SeverityEnum
 from utils import *
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -67,8 +67,8 @@ def updateUserPatch(user_id, data):
         db.session.rollback()
         return {"error": "Error actualizando el usuario"}, 500
 
-def getUser(user_id):
-    user = User.query.filter(User.user_id == user_id).first()
+def getUser(current_user):
+    user = User.query.filter(User.user_id == current_user.user_id).first()
 
     if not user: 
         return {'error':'Usuario no encontrado.'}, 404
@@ -85,3 +85,92 @@ def getUser(user_id):
             'profile_img': user.profile_img
         }
     }, 200
+
+def getDetail(current_user):
+    detail = Detail.query.filter(Detail.user_id == current_user.user_id).first()
+
+    if not detail:
+        return {'detail':{}}, 200
+    
+    output = {
+        'detail_id': detail.detail_id,
+        'user_id': detail.user_id,
+        'name_detail': detail.name_detail,
+        'description_detail': detail.description_detail,
+        'severity': detail.severity
+    }
+
+    return {'detail': output}, 200
+
+def enumSeverityValidator(v):
+        
+        if not v:
+            return SeverityEnum.LEVE
+    
+        if isinstance(v, SeverityEnum):
+            return v.value
+
+        value = to_str(v, 20).upper()
+
+        if value in SeverityEnum.__members__:
+            return value
+
+        raise ValueError(f"Severity inválida: {v}")
+
+def updateDetail(current_user, data):
+
+    detail = Detail.query.filter(Detail.user_id == current_user.user_id).first()
+    
+    if not detail:
+       return {"error": f"No se ha encontrado el detalle en el sistema"}, 404
+    
+    validador = {
+        "name_detail": lambda v: to_str(v, 50),
+        "description_detail": lambda v: to_str(v, 250),
+        "severity": enumSeverityValidator
+    }
+
+    try:
+        for f,transform in validador.items():
+            if f in data:
+                verificado = transform(data[f])
+                setattr(detail,f, verificado)
+
+        db.session.commit()
+
+        return {'message' : 'Detalle actualizado con exito.'}, 200
+    except Exception as e:
+        return {"error": f"Error actualizando el detalle - {e}"}, 500
+
+def createDetail(current_user, data):
+
+    detail = Detail.query.filter(Detail.user_id == current_user.user_id).first()
+
+    if detail:
+       return {'message' : 'Detalle ya registrado en el sistema.'}, 200
+    
+    if not "name_detail" in data:
+        return {'error': 'Faltan datos obligatorios'}, 400
+    
+    try:
+        name_d = to_str(data.get('name_detail'),50)
+        severidad = enumSeverityValidator(data.get('severity'))
+
+        detail = Detail(
+            user_id = current_user.user_id,
+            name_detail = name_d,
+            description_detail = to_str(data.get('description_detail'),250),
+            severity = severidad
+        )
+
+        db.session.add(detail)
+        db.session.commit()
+
+        return {
+            'message' : 'Detalle registrado correctamente',
+            'detail_id': detail.detail_id
+        }, 201
+    
+    except Exception as e:
+        return {'error':f'Error durante la creacion del Detalle- {e}'}, 500
+
