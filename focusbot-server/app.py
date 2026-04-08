@@ -1,4 +1,5 @@
 from flask import Flask
+from flask_cors import CORS
 from services.db_service import db
 from config import Config
 from routes import *
@@ -6,6 +7,7 @@ from services import *
 
 def create_app():
     app = Flask(__name__) 
+    CORS(app, resources={r"/*": {"origins": "*"}})
 
     # Configuración del PostgreSQL
     app.config.from_object(Config)
