@@ -89,11 +89,11 @@ class Bot(db.Model):
     mac_address = db.Column(db.String(17), nullable=False, unique=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=True)
     custom_name = db.Column(db.String(50), default='Focus-Bot')
-    pass_key = db.Column(db.Text, nullable=False)
-    access_point_ssid = db.Column(db.String(150), nullable=False)
+    # pass_key = db.Column(db.Text, nullable=False)
+    # access_point_ssid = db.Column(db.String(150), nullable=False)
     last_sync = db.Column(db.DateTime)
     status = db.Column(db.Enum(BotStatus), nullable=False, default=BotStatus.OFFLINE)
-    firmware_version = db.Column(db.String(20))
+    # firmware_version = db.Column(db.String(20))
 
 class Activity(db.Model):
     __tablename__ = 'activities'
@@ -106,7 +106,7 @@ class Activity(db.Model):
     title = db.Column(db.String(100), nullable=False)
     description = db.Column(db.String(250))
     
-    duration_minutes = db.Column(db.Integer, nullable=False)
+    # duration_minutes = db.Column(db.Integer, nullable=False)
     
     init_date = db.Column(db.DateTime)
     end_date = db.Column(db.DateTime)

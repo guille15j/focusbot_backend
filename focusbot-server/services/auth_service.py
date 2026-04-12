@@ -61,16 +61,16 @@ def register_user(data):
 
     except Exception as e:
         db.session.rollback()
-        return {'error':'Error registrando el usuario'}, 500
+        return {'message':'Error registrando el usuario', 'error': str(e)}, 500
 
 def login_user(data):
     identifier = data.get('identifier') 
     psswd = data.get('password')
 
     if not identifier:
-        return {'error': 'Faltan credenciales identifier'}, 400
+        return {'message': 'Faltan credenciales identifier'}, 400
     if not psswd:
-        return {'error': 'Faltan credenciales password'}, 400
+        return {'message': 'Faltan credenciales password'}, 400
 
     #Buscamos el usuario
     user = User.query.filter(
@@ -78,11 +78,11 @@ def login_user(data):
     ).first()
 
     if not user:
-        return {'error': 'Usuario no registrado en el sistema'}, 401
+        return {'message': 'Usuario no registrado en el sistema'}, 401
     
     if not check_password_hash(user.password_hash, psswd):
         # LA comprobacion del has es negativa por loq ue no se puede iniciar sesión
-        return {'error': 'Credenciales inválidas'}, 401
+        return {'message': 'Credenciales inválidas'}, 401
 
     token = generate_token(user.user_id)
     
@@ -100,9 +100,9 @@ def reset_password(data):
     psswd = data.get('password') # Si las contraseñas no coinciden la app no mandara la peticion, solo se recibira una de ellas
 
     if not identifier:
-        return {'error': 'Faltan credenciales identifier'}, 400
+        return {'message': 'Faltan credenciales identifier'}, 400
     if not psswd:
-        return {'error': 'Faltan credenciales password'}, 400
+        return {'message': 'Faltan credenciales password'}, 400
 
     #Buscamos el usuario
     user = User.query.filter(
@@ -110,10 +110,10 @@ def reset_password(data):
     ).first()
 
     if not user:
-        return {'error': 'Usuario no registrado en el sistema'}, 401
+        return {'message': 'Usuario no registrado en el sistema'}, 401
     
     if check_password_hash(user.password_hash, psswd):
-        return {'error': 'No puedes usar la misma contraseña.'}, 422 #No cumple los requitisitos
+        return {'message': 'No puedes usar la misma contraseña.'}, 422 #No cumple los requitisitos
 
     try:
         user.password_hash = generate_password_hash(psswd)
@@ -123,4 +123,4 @@ def reset_password(data):
 
     except Exception as e:
         db.session.rollback()
-        return {'error': f'Error actualizando la contraseña \n{e}'}, 500
+        return {'message': 'Error actualizando la contraseña','error':str(e)}, 500

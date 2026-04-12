@@ -1,6 +1,8 @@
-from services.db_service import db, User, Activity, Bot, ActivityType
+from services.db_service import db, User, Activity, Bot, ActivityType, ActivityCategory, ActivityState
 from utils import *
 from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime
+
 
 def getActivitiesUsr (current_user):
 
@@ -85,4 +87,82 @@ def getActivity(current_user, activity_id):
 
     return {"activity": act_final}, 200
 
+def validateCategory(v):
+    if not v:
+        return ActivityCategory.OTRAS
+
+    if isinstance(v, ActivityCategory):
+        return v.value
+
+    value = to_str(v, 20).upper()
+
+    if value in ActivityCategory.__members__:
+            return value
     
+    raise ValueError(f"Valor '{value}' no es válido para {ActivityCategory.__name__}")
+
+def createActivity(current_user, data):
+    required_fields = ['type_id','bot_id','title','category']
+
+    if any(data.get(field) is None for field in required_fields):
+        return {'message': 'Faltan datos obligatorios'}, 400
+    
+    try:
+        typeId = data['type_id']
+        botId = data['bot_id']
+        title = to_str(data['title'],100)
+        
+        category = validateCategory(data['category'])
+
+        init_date = data.get('init_date')
+        if init_date and isinstance(init_date, str):
+            init_date = datetime.fromisoformat(init_date)
+            
+            
+        end_date = data.get('end_date')
+        if end_date and isinstance(end_date, str):
+            end_date = datetime.fromisoformat(end_date)
+
+        act = Activity(
+            type_id = typeId,
+            user_id = current_user.user_id,
+            bot_id = botId,
+            title = title,
+            description = data.get('description'),
+            init_date = init_date,
+            end_date = end_date,
+            state = ActivityState.PENDIENTE,
+            category = category,
+            result = None            
+        )
+
+        db.session.add(act)
+        db.session.commit()
+
+        return {
+            'message':'Actividad creada correctamente',
+            'id':act.activity_id
+        }, 201
+
+    except Exception as e:
+        db.session.rollback()
+        return {'message':'Error registrando la actividad', 'error' : str(e)}, 500
+
+
+def editActivity(current_user,activity_id, data):
+    return None
+
+def deleteActivity(current_user, activity_id):
+    return None
+
+def getTypesUsr(current_user):
+    return None
+
+def createType(current_user, data):
+    return None
+
+def editType(current_user, type_id, data):
+    return None
+
+def deleteType(current_user, type_id):
+    return None

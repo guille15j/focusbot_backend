@@ -8,6 +8,7 @@ activities_bp = Blueprint('activities', __name__)
 def activities_check():
     return jsonify({"message": "API preparada para recibir peticiones"}), 200
 
+"""
 @activities_bp.route('/user/focus-settings', methods=['GET'])
 @token_required
 def focusSettings(current_user):
@@ -22,6 +23,7 @@ def setFocusSettings(current_user):
 @token_required
 def updateFocusSettings(current_user):
     return None
+"""
 
 # ---------------------------------------------------------------------
 
@@ -39,6 +41,7 @@ def getActivityByID(current_user, activity_id):
     response , status_code = getActivity(current_user, activity_id)
     return jsonify(response), status_code
 
+"""
 @activities_bp.route('/', methods = ['POST'])
 @token_required
 def createActivity(current_user):
@@ -53,3 +56,4 @@ def updateActivity(current_user, activity_id):
 @token_required
 def deleteActivity(current_user, activity_id):
     return None
+"""
