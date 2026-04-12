@@ -1,4 +1,4 @@
-from services.db_service import db, User, Activity, Bot, ActivityType, ActivityCategory, ActivityState
+from services.db_service import db, User, Activity, Bot, ActivityType, ActivityCategory, ActivityState, ActivityResults
 from utils import *
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
@@ -87,20 +87,6 @@ def getActivity(current_user, activity_id):
 
     return {"activity": act_final}, 200
 
-def validateCategory(v):
-    if not v:
-        return ActivityCategory.OTRAS
-
-    if isinstance(v, ActivityCategory):
-        return v.value
-
-    value = to_str(v, 20).upper()
-
-    if value in ActivityCategory.__members__:
-            return value
-    
-    raise ValueError(f"Valor '{value}' no es válido para {ActivityCategory.__name__}")
-
 def createActivity(current_user, data):
     required_fields = ['type_id','bot_id','title','category']
 
@@ -112,7 +98,7 @@ def createActivity(current_user, data):
         botId = data['bot_id']
         title = to_str(data['title'],100)
         
-        category = validateCategory(data['category'])
+        category = to_enum(data['category'], ActivityCategory, default= ActivityCategory.OTRAS)
 
         init_date = data.get('init_date')
         if init_date and isinstance(init_date, str):
@@ -148,21 +134,185 @@ def createActivity(current_user, data):
         db.session.rollback()
         return {'message':'Error registrando la actividad', 'error' : str(e)}, 500
 
+def editActivity(current_user, activity_id, data):
+    act = Activity.query.filter(Activity.activity_id == activity_id, Activity.user_id == current_user.user_id).first()
 
-def editActivity(current_user,activity_id, data):
-    return None
+    if not act:
+        return {"error": "Actividad no encontrada o no tienes permiso para editarla"}, 404
+
+    validador = {
+        "type_id": lambda v: int(v),
+        "bot_id": lambda v: int(v),
+        "title": lambda v: to_str(v, 100),
+        "description": lambda v: to_str(v, 250),
+        "init_date": lambda v: datetime.fromisoformat(v) if isinstance(v, str) else v,
+        "end_date": lambda v: datetime.fromisoformat(v) if isinstance(v, str) else v,
+        "category": lambda v: to_enum(v,ActivityCategory),
+        "state": lambda v: to_enum(v,ActivityState),
+        "result": lambda v: to_enum(v, ActivityResults)
+    }
+
+    try:
+        for field, transform in validador.items():
+            if field in data and data[field] is not None:
+                verificado = transform(data[field])
+                setattr(act, field, verificado)
+        
+        db.session.commit()
+
+        return {
+            "message": "Actividad actualizada correctamente."
+        }, 200
+
+    except ValueError as ve:
+        db.session.rollback()
+        return {"error": str(ve)}, 400
+    except Exception as e:
+        db.session.rollback()
+        return {"error": "Error actualizando la actividad", "details": str(e)}, 500
 
 def deleteActivity(current_user, activity_id):
-    return None
+    act = Activity.query.filter(Activity.activity_id == activity_id, Activity.user_id == current_user.user_id).first()
+
+    if not act:
+        return {'message': 'Actividad no encontrada o no tienes permisos para eliminarla.'}, 404
+    
+    if act.get('result') != None or act.get('state') in [ActivityState.COMPLETADO, ActivityState.EN_CURSO] :
+        return {'message': 'La actividad ya ha sido realizada y no se puede borrar.'} , 400
+    
+    try:
+        db.session.delete(act)
+        db.session.commit()
+
+        return {'message': 'Actividad eliminada correctamente'}, 200
+
+    except Exception as e:
+        db.session.rollback()
+        return {
+            'message': 'Error eliminando la actividad', 
+            'error': str(e)
+        }, 500
 
 def getTypesUsr(current_user):
-    return None
+    """
+    Obtenemos los Tipos de actividad que tiene registrados ese usuario
+    """
+    types = ActivityType.query.filter(ActivityType.user_id == current_user.user_id).all()
+
+    if not types:
+        return {'types': []}, 200
+
+    lista_types = []
+    for t in types:
+        lista_types.append({
+            "type_id": t.type_id,
+            "name_type": t.name_type,
+            "work_duration": t.work_duration,
+            "short_break": t.short_break,
+            "long_break": t.long_break,
+            "cycles_before_long": t.cycles_before_long
+        })
+
+    return {'types': lista_types}, 200
 
 def createType(current_user, data):
-    return None
+    """
+    Creación de un nuevo Tipo de Actividad
+    """
+
+    required_fields = ['name_type', 'work_duration']
+
+    if any(data.get(field) is None for field in required_fields):
+        return {'error': 'Faltan datos obligatorios'}, 400
+
+    try:
+        new_type = ActivityType(
+            user_id = current_user.user_id,
+            name_type = to_str(data['name_type'], 50),
+            work_duration = to_int(data['work_duration']),
+            short_break = to_int(data.get('short_break'), 0),
+            long_break = to_int(data.get('long_break'), 0),
+            cycles_before_long = to_int(data.get('cycles_before_long'), 0)
+        )
+
+        db.session.add(new_type)
+        db.session.commit()
+
+        return {
+            'message': 'Tipo de actividad creado correctamente',
+            'id': new_type.type_id
+        }, 201
+
+    except Exception as e:
+        db.session.rollback()
+        return {'message': 'Error creando el tipo de actividad', 'error': str(e)}, 500
 
 def editType(current_user, type_id, data):
-    return None
+    """
+    Edición de un nuevo tipo de actividad
+    """
+    activity_type = ActivityType.query.filter(
+        ActivityType.type_id == type_id, 
+        ActivityType.user_id == current_user.user_id
+    ).first()
+
+    if not activity_type:
+        return {"error": "Tipo de actividad no encontrado"}, 404
+
+    validador = {
+        "name_type": lambda v: to_str(v, 50),
+        "work_duration": lambda v: to_int(v),
+        "short_break": lambda v: to_int(v),
+        "long_break": lambda v: to_int(v),
+        "cycles_before_long": lambda v: to_int(v)
+    }
+
+    try:
+        for field, transform in validador.items():
+            if field in data:
+                verificado = transform(data[field])
+                setattr(activity_type, field, verificado)
+        
+        db.session.commit()
+
+        return {
+            "message": "Tipo de actividad actualizado correctamente."
+        }, 200
+
+    except Exception as e:
+        db.session.rollback()
+        return {"message": "Error actualizando el tipo de actividad", "error": str(e)}, 500
 
 def deleteType(current_user, type_id):
-    return None
+    """
+    Eliminación de un tipo de actividad.
+    Si la actividad se trata de una de las por defecto (nombre):
+        - Pomodoro
+        - Hitos
+        - Temporizador
+    Se deberá lanzar un error y no se podrá eliminar ya que son del sistema.
+    De está manera solo se podrán eliinar las propias creadas por el ususario.
+    """
+    activity_type = ActivityType.query.filter(
+        ActivityType.type_id == type_id, 
+        ActivityType.user_id == current_user.user_id
+    ).first()
+
+    if not activity_type:
+        return {"error": "Tipo de actividad no encontrado"}, 404
+
+    system_types = ['Pomodoro', 'Hitos', 'Temporizador']
+    if activity_type.name_type in system_types:
+        return {"error": "No se pueden eliminar tipos de actividad del sistema"}, 403
+
+    try:
+        db.session.delete(activity_type)
+        db.session.commit()
+
+        return {
+            "message": "Tipo de actividad eliminado correctamente."
+        }, 200
+
+    except Exception as e:
+        db.session.rollback()
+        return {"error": "Error eliminando el tipo de actividad", "details": str(e)}, 500

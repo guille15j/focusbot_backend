@@ -102,21 +102,6 @@ def getDetail(current_user):
 
     return {'detail': output}, 200
 
-def enumSeverityValidator(v):
-        
-        if not v:
-            return SeverityEnum.LEVE
-    
-        if isinstance(v, SeverityEnum):
-            return v.value
-
-        value = to_str(v, 20).upper()
-
-        if value in SeverityEnum.__members__:
-            return value
-
-        raise ValueError(f"Severity inválida: {v}")
-
 def updateDetail(current_user, data):
 
     detail = Detail.query.filter(Detail.user_id == current_user.user_id).first()
@@ -127,7 +112,7 @@ def updateDetail(current_user, data):
     validador = {
         "name_detail": lambda v: to_str(v, 50),
         "description_detail": lambda v: to_str(v, 250),
-        "severity": enumSeverityValidator
+        "severity": lambda v: to_enum(v, SeverityEnum, default=SeverityEnum.LEVE)
     }
 
     try:
@@ -154,7 +139,7 @@ def createDetail(current_user, data):
     
     try:
         name_d = to_str(data.get('name_detail'),50)
-        severidad = enumSeverityValidator(data.get('severity'))
+        severidad =  to_enum(data.get('severity'), SeverityEnum, default=SeverityEnum.LEVE)
 
         detail = Detail(
             user_id = current_user.user_id,
@@ -172,5 +157,5 @@ def createDetail(current_user, data):
         }, 201
     
     except Exception as e:
-        return {'error':f'Error durante la creacion del Detalle- {e}'}, 500
+        return {'message':'Error durante la creacion del Detalle','error':to_str(e,100)}, 500
 
