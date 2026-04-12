@@ -39,7 +39,7 @@ def getActivity(current_user, activity_id):
     activity = Activity.query.filter(
         Activity.user_id == current_user.user_id, 
         Activity.activity_id == activity_id
-    ).frist()
+    ).first()
 
     if not activity:
         return {'error':'Actividad no Registrada en el sistema.'}, 404
@@ -100,14 +100,8 @@ def createActivity(current_user, data):
         
         category = to_enum(data['category'], ActivityCategory, default= ActivityCategory.OTRAS)
 
-        init_date = data.get('init_date')
-        if init_date and isinstance(init_date, str):
-            init_date = datetime.fromisoformat(init_date)
-            
-            
-        end_date = data.get('end_date')
-        if end_date and isinstance(end_date, str):
-            end_date = datetime.fromisoformat(end_date)
+        init_date = to_datetime(data.get('init_date'))
+        end_date = to_datetime(data.get('end_date'))
 
         act = Activity(
             type_id = typeId,
@@ -147,8 +141,8 @@ def editActivity(current_user, activity_id, data):
         "description": lambda v: to_str(v, 250),
         "init_date": lambda v: datetime.fromisoformat(v) if isinstance(v, str) else v,
         "end_date": lambda v: datetime.fromisoformat(v) if isinstance(v, str) else v,
-        "category": lambda v: to_enum(v,ActivityCategory),
-        "state": lambda v: to_enum(v,ActivityState),
+        "category": lambda v: to_enum(v,ActivityCategory, default=ActivityCategory.OTRAS),
+        "state": lambda v: to_enum(v,ActivityState, default=ActivityState.PENDIENTE),
         "result": lambda v: to_enum(v, ActivityResults)
     }
 
@@ -177,7 +171,7 @@ def deleteActivity(current_user, activity_id):
     if not act:
         return {'message': 'Actividad no encontrada o no tienes permisos para eliminarla.'}, 404
     
-    if act.get('result') != None or act.get('state') in [ActivityState.COMPLETADO, ActivityState.EN_CURSO] :
+    if act.result != None or act.state in [ActivityState.COMPLETADO, ActivityState.EN_CURSO] :
         return {'message': 'La actividad ya ha sido realizada y no se puede borrar.'} , 400
     
     try:
