@@ -26,6 +26,7 @@ def generate_token(user_id):
             current_app.config['SECRET_KEY'],
             algorithm='HS256'
         )
+    
     except Exception as e:
         return str(e)
 

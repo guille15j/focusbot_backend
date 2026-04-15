@@ -144,9 +144,9 @@ class History(db.Model):
     num_completo = db.Column(db.Integer, default=0)               # Num de actividades con resultado completado
     num_pospuesto = db.Column(db.Integer, default=0)              # Num de actividades con estado pospuesto
     num_cancelado = db.Column(db.Integer, default=0)              # Num de actividades con resultado cancelado
-    num_pendiente = db.Column(db.Integer, default=0)              # Num de actividades con resultado a null && estado != pospuesto o en curso
+    num_pendiente = db.Column(db.Integer, default=0)              # Num de actividades con resultado a null && estado != pospuesto
 
-    avg_focus = db.Column(db.Float, default=0.0)                  # avg del tiempo enfocado por dia
+    most_category = db.Column(db.Enum(ActivityCategory))                  # avg del tiempo enfocado por dia
     total_activities = db.Column(db.Integer, default=0)           # Numero de actividades analizadas
     total_used_time = db.Column(db.Interval)                      # Tiempo total invertido no solo en Focus
 
