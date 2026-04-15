@@ -29,8 +29,16 @@ def calculateRecord(current_user, data):
         total_used_time = calculate_totalTime(list_activities)
     )
 
+    try:
+        db.session.add(record)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return {"message" : "Error creando el record."}, 500
+    
 
-    return None
+
+    return {"message": "Historico creado con éxito", "record" : record}, 201
 
 def cont_completado(list):
     out = []
