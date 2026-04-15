@@ -132,32 +132,32 @@ class Detail(db.Model):
         db.UniqueConstraint('user_id', 'name_detail', name='uq_user_detail_name'),
     )
 
-# class History(db.Model):
-#     __tablename__ = 'histories'
+class History(db.Model):
+    __tablename__ = 'histories'
 
-#     result_id = db.Column(db.Integer, primary_key = True)
-#     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable = False)
+    result_id = db.Column(db.Integer, primary_key = True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable = False)
 
-#     first_date_range = db.Column(db.DateTime, nullable = False)
-#     end_date_range = db.Column(db.DateTime, nullable = False)
+    init_date_range = db.Column(db.DateTime, nullable = False)    # Fecha inicial del rango
+    end_date_range = db.Column(db.DateTime, nullable = False)     # Fecha final del rango
 
-#     num_completo = db.Column(db.Integer, default=0)
-#     num_pospuesto = db.Column(db.Integer, default=0)
-#     num_cancelado = db.Column(db.Integer, default=0)
-#     num_pendiente = db.Column(db.Integer, default=0)
+    num_completo = db.Column(db.Integer, default=0)               # Num de actividades con resultado completado
+    num_pospuesto = db.Column(db.Integer, default=0)              # Num de actividades con estado pospuesto
+    num_cancelado = db.Column(db.Integer, default=0)              # Num de actividades con resultado cancelado
+    num_pendiente = db.Column(db.Integer, default=0)              # Num de actividades con resultado a null && estado != pospuesto o en curso
 
-#     avg_focus = db.Column(db.Float, default=0.0)
-#     total_activities = db.Column(db.Integer, default=0)
-#     total_used_time = db.Column(db.Interval)
+    avg_focus = db.Column(db.Float, default=0.0)                  # avg del tiempo enfocado por dia
+    total_activities = db.Column(db.Integer, default=0)           # Numero de actividades analizadas
+    total_used_time = db.Column(db.Interval)                      # Tiempo total invertido no solo en Focus
 
-#     __table_args__ = (
-#         db.CheckConstraint('avg_focus >= 0.0', name='check_avg_positive'),
+    __table_args__ = (
+        db.CheckConstraint('avg_focus >= 0.0', name='check_avg_positive'),
 
-#         db.CheckConstraint('num_completo >= 0.0', name='check_num_completo_positive'),
-#         db.CheckConstraint('num_pospuesto >= 0.0', name='check_num_pospuesto_positive'),
-#         db.CheckConstraint('num_cancelado >= 0.0', name='check_num_cancelado_positive'),
-#         db.CheckConstraint('num_pendiente >= 0.0', name='check_num_pendiente_positive'),
+        db.CheckConstraint('num_completo >= 0.0', name='check_num_completo_positive'),
+        db.CheckConstraint('num_pospuesto >= 0.0', name='check_num_pospuesto_positive'),
+        db.CheckConstraint('num_cancelado >= 0.0', name='check_num_cancelado_positive'),
+        db.CheckConstraint('num_pendiente >= 0.0', name='check_num_pendiente_positive'),
 
-#         db.CheckConstraint('end_date_range >= first_date_range', name='check_date_order'),
-#     )
+        db.CheckConstraint('end_date_range >= first_date_range', name='check_date_order'),
+    )
 
