@@ -90,3 +90,18 @@ def link_bot(data, user_id):
     except Exception as e:
         db.session.rollback()
         return {'error': f'Error al guardar en la base de datos\n{str(e)}'}, 500
+    
+def getBotById(current_user, bot_id):
+    bot = Bot.query.filter(Bot.bot_id == bot_id and Bot.user_id == current_user.user_id).first()
+
+    if not bot:
+        return {"message" : "Bot no encontrado en el sistema"} , 404
+
+    return {   "bot_id": bot.bot_id,
+                "name": bot.custom_name,
+                "mac_address": bot.mac_address,
+                "status": bot.status.value,
+                "ssid": bot.access_point_ssid,
+                "version": bot.firmware_version,
+                "last_sync": bot.last_sync.isoformat() if bot.last_sync else None
+                }, 201
