@@ -36,7 +36,7 @@ def manageUserDetail(current_user):
     data = request.get_json()
 
     if not data:
-        return jsonify({"error":"No se han enviado campos en la petición."}), 400
+        return jsonify({"message":"No se han enviado campos en la petición."}), 400
     
     if request.method == 'POST':
         response, status = createDetail(current_user, data)

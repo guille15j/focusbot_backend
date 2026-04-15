@@ -16,7 +16,7 @@ def bot_pair(current_user):
     data = request.get_json()
     
     if not data:
-        return jsonify({'error':'Datos vacios en la petición de vinculación'}),400
+        return jsonify({'message':'Datos vacios en la petición de vinculación'}),400
     
     response, status_code = link_bot(data, current_user.user_id)
 
