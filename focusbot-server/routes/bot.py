@@ -29,31 +29,26 @@ def listadoBots(current_user):
     response, status_code = getBotsByUser(current_user)
     return jsonify(response), status_code
 
-# ENDPOINTS DE PRUEBA -----------------------------------------------------------
-@bot_bp.route('/bots', methods=['GET'])
+@bot_bp.route('/<int:bot_id>', methods=['GET','PUT', 'PATCH', 'DELETE'])
 @token_required
-def get_my_robots(current_user):
-    from services.db_service import Bot
-    bots = Bot.query.filter_by(user_id=current_user.user_id).all()
-    
-    if not bots:
-        return jsonify([]), 200
+def get_edit_delete_bot(current_user, bot_id):
+    if request.method == 'DELETE':
+        response, status_code = deleteBot(current_user, bot_id)
 
-    lista_bots = []
-    for bot in bots:
-        lista_bots.append(
-            {
-            "bot_id": bot.bot_id,
-            "name": bot.custom_name,
-            "mac_address": bot.mac_address,
-            "status": bot.status.value,
-            "ssid": bot.access_point_ssid,
-            "version": bot.firmware_version,
-            "last_sync": bot.last_sync.isoformat() if bot.last_sync else None
-            }
-        )
-        
-    return jsonify(lista_bots), 200
+    if request.method in ['PUT', 'PATCH']:
+        data = request.get_json()
+
+        if not data:
+            return jsonify({'message':'Datos vacios en la petición.'}),400
+
+        response, status_code = editBot (current_user, bot_id, data)
+
+    if request.method == 'GET':
+        response, status_code = getBotById(current_user, bot_id)
+
+    return jsonify(response), status_code
+
+# ENDPOINTS DE PRUEBA -----------------------------------------------------------
 
 # Testeo de MQTT
 @bot_bp.route('/command', methods=['POST'])
