@@ -1,5 +1,6 @@
 from services.db_service import db, Bot, BotStatus, User
 import secrets
+from utils import *
 
 def getBotsByUser(current_user):
     user = User.query.filter(User.user_id == current_user.user_id).first()
@@ -105,3 +106,53 @@ def getBotById(current_user, bot_id):
                 "version": bot.firmware_version,
                 "last_sync": bot.last_sync.isoformat() if bot.last_sync else None
                 }, 201
+
+def editBot(current_user, bot_id, data):
+    
+    bot = Bot.query.filter(Bot.bot_id == bot_id and Bot.user_id == current_user.user_id )
+
+    if not bot:
+        return {"message" : "Bot no encontrado en el sistema"}, 404
+    
+    validator = {
+        'user_id' : lambda v : to_int(v) ,
+        'custom_name' : lambda v : to_str(v , 50),
+        'last_sync' : lambda v : to_datetime(v),
+        'status' : lambda v : to_enum(v, BotStatus, default= BotStatus.OFFLINE)
+    }
+
+    if not data:
+        return {"message":"No hay datos a actualizar."}, 500
+    
+    try:
+        for field, transform in validator.items():
+            if field in data:
+                verificado = transform(data[field])
+                setattr(bot, field, verificado)
+        
+        db.session.commit()
+
+        return {"message" : "Bot actualizado con exito."} , 200
+    
+    except Exception as e:
+        db.session.rollback()
+        return {"message":"Error editando el bot.", "error":str(e)}, 500
+
+    return None
+
+def deleteBot(current_user, bot_id):
+
+    bot  = Bot.query.filter(Bot.user_id == current_user and Bot.bot_id == bot_id).first()
+
+    if not bot:
+        return {"message" : "Bot no encontrado en el sistema"}, 404
+    try:
+
+        db.session.delete(bot)
+        db.session.commit()
+
+        return {"message" : "Bot borrado con exito"}, 200
+
+    except Exception as e:
+        db.session.rollback()
+        return {"message" : "Error al borrar el Bot del sistema.", "error" : str(e)}, 500
