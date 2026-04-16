@@ -23,11 +23,17 @@ def calculate_history(current_user):
 @history_bp.route('/<int:record_id>',methods= ['GET'])
 @token_required
 def get_Recor_by_ID(current_user,record_id):
-    return None
+    return jsonify({
+        "message": "Endpoint no implementado",
+        "status": "En desarrollo - Próximo sprint"
+    }), 501
 
 @history_bp.route('/rango',methods=['GET'])
 @token_required
 def get_records_en_rango(current_user):
     data = request.get_json()
 
-    return None
+    return jsonify({
+        "message": "Endpoint no implementado",
+        "status": "En desarrollo - Próximo sprint"
+    }), 501
