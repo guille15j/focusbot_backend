@@ -23,8 +23,8 @@ def getBotsByUser(current_user):
                 "name": bot.custom_name,
                 "mac_address": bot.mac_address,
                 "status": bot.status.value,
-                "ssid": bot.access_point_ssid,
-                "version": bot.firmware_version,
+                # "ssid": bot.access_point_ssid,
+                # "version": bot.firmware_version,
                 "last_sync": bot.last_sync.isoformat() if bot.last_sync else None
                 }
             )
@@ -70,8 +70,8 @@ def link_bot(data, user_id):
             mac_address=mac,
             user_id=user_id,
             custom_name=name,
-            pass_key=generated_key,
-            access_point_ssid=f"FocusBot_{mac.replace(':', '')[-4:]}", #Red que crea la ESP para que podamos conectarnos a ellos y ajustar la ssiud de nuestra wifi
+            # pass_key=generated_key,
+            # access_point_ssid=f"FocusBot_{mac.replace(':', '')[-4:]}", #Red que crea la ESP para que podamos conectarnos a ellos y ajustar la ssiud de nuestra wifi
             status=BotStatus.IDLE
         )
         db.session.add(bot)
@@ -83,8 +83,8 @@ def link_bot(data, user_id):
             'bot': {
                 'id': bot.bot_id,
                 'name': bot.custom_name,
-                'pass_key': bot.pass_key,
-                'ssid': bot.access_point_ssid
+                # 'pass_key': bot.pass_key,
+                # 'ssid': bot.access_point_ssid
             }
         }, 201
 
@@ -102,8 +102,8 @@ def getBotById(current_user, bot_id):
                 "name": bot.custom_name,
                 "mac_address": bot.mac_address,
                 "status": bot.status.value,
-                "ssid": bot.access_point_ssid,
-                "version": bot.firmware_version,
+                # "ssid": bot.access_point_ssid,
+                # "version": bot.firmware_version,
                 "last_sync": bot.last_sync.isoformat() if bot.last_sync else None
                 }, 201
 
@@ -138,10 +138,9 @@ def editBot(current_user, bot_id, data):
         db.session.rollback()
         return {"message":"Error editando el bot.", "error":str(e)}, 500
 
-
 def deleteBot(current_user, bot_id):
 
-    bot  = Bot.query.filter(Bot.user_id == current_user, Bot.bot_id == bot_id).first()
+    bot  = Bot.query.filter(Bot.user_id == current_user.user_id, Bot.bot_id == bot_id).first()
 
     if not bot:
         return {"message" : "Bot no encontrado en el sistema"}, 404

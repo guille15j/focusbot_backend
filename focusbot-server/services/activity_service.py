@@ -23,8 +23,6 @@ def getActivitiesUsr (current_user):
                 "title": a.title,
                 "description": a.description,
 
-                "duration_minutes": a.duration_minutes,
-
                 "init_date": a.init_date.isoformat() if a.init_date else None,
                 "end_date": a.end_date.isoformat() if a.end_date else None,
 
@@ -58,7 +56,6 @@ def getActivity(current_user, activity_id):
         "activity_id": activity.activity_id,
         "title": activity.title,
         "description": activity.description,
-        "duration_minutes": activity.duration_minutes,
         "init_date": activity.init_date.isoformat() if activity.init_date else None,
         "end_date": activity.end_date.isoformat() if activity.end_date else None,
         "state": activity.state.value,
@@ -70,18 +67,18 @@ def getActivity(current_user, activity_id):
             "name": bot.custom_name,
             "mac_address": bot.mac_address,
             "status": bot.status.value,
-            "ssid": bot.access_point_ssid,
-            "version": bot.firmware_version,
+            # "ssid": bot.access_point_ssid,
+            # "version": bot.firmware_version,
             "last_sync": bot.last_sync.isoformat() if bot.last_sync else None
         },
 
         "type": {
             "type_id": act_type.type_id,
             "name": act_type.name_type,
-            "total_time": act_type.total_time,
-            "rest_time": act_type.rest_time,
-            "break_time": act_type.break_time,
-            "num_breaks": act_type.num_breaks
+            "work_duration": act_type.work_duration,
+            "short_break": act_type.short_break,
+            "long_break": act_type.long_break,
+            "cycles_before_long": act_type.cycles_before_long 
         }
     }
 
@@ -201,10 +198,10 @@ def getTypesUsr(current_user):
         lista_types.append({
             "type_id": t.type_id,
             "name_type": t.name_type,
-            "work_duration": t.work_duration,
-            "short_break": t.short_break,
-            "long_break": t.long_break,
-            "cycles_before_long": t.cycles_before_long
+            "work_duration": t.work_duration,      
+            "short_break": t.short_break,          
+            "long_break": t.long_break,            
+            "cycles_before_long": t.cycles_before_long 
         })
 
     return {'types': lista_types}, 200

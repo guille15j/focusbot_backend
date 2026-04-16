@@ -1,4 +1,4 @@
-from services.db_service import db, User
+from services.db_service import db, User, SeverityEnum
 from utils import *
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -36,17 +36,19 @@ def register_user(data):
         hash_pswd = generate_password_hash(psswd)
 
         user = User(
-            first_name = first_name,
-            last_name = last_name,
-            nickname = nickname,
-            email = email,
-            birth_date = birth_date,
-            password_hash = hash_pswd,
-            phone = to_str(data.get('phone'),20),
-            profile_img = data.get('profile_img'),
-            timezone = to_str(data.get('timezone'),50)
-        ) 
-
+            first_name=first_name,
+            last_name=last_name,
+            nickname=nickname,
+            email=email,
+            birth_date=birth_date,
+            password_hash=hash_pswd,
+            phone=to_str(data.get('phone'), 20),
+            profile_img=data.get('profile_img'),
+            timezone=to_str(data.get('timezone'), 50),
+            name_detail=to_str(data.get('name_detail'), 50) or f"Perfil de {nickname}",
+            description_detail=data.get('description_detail'),
+            severity=SeverityEnum.LEVE
+        )
     
         db.session.add(user)
         db.session.commit()

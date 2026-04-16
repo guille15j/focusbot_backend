@@ -59,48 +59,12 @@ class User(db.Model):
     timezone = db.Column(db.String(50), default='UTC')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
  
-    name_detail = db.Column(db.String(50), nullable=False)
+    name_detail = db.Column(db.String(50))
     description_detail = db.Column(db.String(250))
     severity = db.Column(db.Enum(SeverityEnum), default=SeverityEnum.LEVE)
 
     activities = db.relationship('Activity', backref='user', lazy=True)
     bots = db.relationship('Bot', backref='owner', lazy=True)
-   
-
-class ActivityType (db.Model):
-    __tablename__ = "activity_types"
-
-    type_id = db.Column(db.Integer, primary_key= True)
-    name_type = db.Column(db.String(50), nullable =False)
-    work_duration = db.Column(db.Integer, nullable = False)
-    short_break = db.Column(db.Integer, default = 0)
-    long_break = db.Column(db.Integer, default = 0)
-    cycles_before_long = db.Column(db.Integer, default = 0)
-
-    # Constraints
-    __table_args__ = (
-        db.CheckConstraint('work_duration >= 0', name='check_work_duration_positive'),
-        db.CheckConstraint('short_break >= 0', name='check_short_break_positive'),
-        db.CheckConstraint('long_break >= 0', name='check_long_break_positive'),
-        db.CheckConstraint('cycles_before_long >= 0', name='check_cycles_before_long_positive'),
-        db.CheckConstraint('work_duration + short_break + long_break >= 0', name='check_total_duration_positive'),
-    )
-
-class Bot(db.Model):
-    __tablename__ = 'bots'
-
-    bot_id = db.Column(db.Integer, primary_key=True)
-    mac_address = db.Column(db.String(17), nullable=False, unique=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=True)
-    custom_name = db.Column(db.String(50), default='Focus-Bot')
-
-    # pass_key = db.Column(db.Text, nullable=False)
-    # access_point_ssid = db.Column(db.String(150), nullable=False)
-
-    last_sync = db.Column(db.DateTime)
-    status = db.Column(db.Enum(BotStatus), nullable=False, default=BotStatus.OFFLINE)
-   
-    # firmware_version = db.Column(db.String(20))
 
 class Activity(db.Model):
     __tablename__ = 'activities'
@@ -124,6 +88,40 @@ class Activity(db.Model):
     result = db.Column(db.Enum(ActivityResults), nullable=True)
 
 
+class ActivityType(db.Model):
+    __tablename__ = "activity_types"
+
+    type_id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)  # ← AÑADIR ESTO
+    name_type = db.Column(db.String(50), nullable=False)
+    work_duration = db.Column(db.Integer, nullable=False)
+    short_break = db.Column(db.Integer, default=0)
+    long_break = db.Column(db.Integer, default=0)
+    cycles_before_long = db.Column(db.Integer, default=0)
+
+    __table_args__ = (
+        db.CheckConstraint('work_duration >= 0', name='check_work_duration_positive'),
+        db.CheckConstraint('short_break >= 0', name='check_short_break_positive'),
+        db.CheckConstraint('long_break >= 0', name='check_long_break_positive'),
+        db.CheckConstraint('cycles_before_long >= 0', name='check_cycles_before_long_positive'),
+        db.UniqueConstraint('user_id', 'name_type', name='uq_user_activity_type_name'),
+    )
+
+class Bot(db.Model):
+    __tablename__ = 'bots'
+
+    bot_id = db.Column(db.Integer, primary_key=True)
+    mac_address = db.Column(db.String(17), nullable=False, unique=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=True)
+    custom_name = db.Column(db.String(50), default='Focus-Bot')
+
+    # pass_key = db.Column(db.Text, nullable=False)
+    # access_point_ssid = db.Column(db.String(150), nullable=False)
+
+    last_sync = db.Column(db.DateTime)
+    status = db.Column(db.Enum(BotStatus), nullable=False, default=BotStatus.OFFLINE)
+   
+    # firmware_version = db.Column(db.String(20))
 
 class History(db.Model):
     __tablename__ = 'histories'
@@ -139,18 +137,16 @@ class History(db.Model):
     num_cancelado = db.Column(db.Integer, default=0)              # Num de actividades con resultado cancelado
     num_pendiente = db.Column(db.Integer, default=0)              # Num de actividades con resultado a null && estado != pospuesto
 
-    most_category = db.Column(db.Enum(ActivityCategory))                  # avg del tiempo enfocado por dia
+    most_category = db.Column(db.Enum(ActivityCategory))          # Categoría más repetida en el rango
     total_activities = db.Column(db.Integer, default=0)           # Numero de actividades analizadas
-    total_used_time = db.Column(db.Interval)                      # Tiempo total invertido no solo en Focus
+    total_used_time = db.Column(db.Integer)                       # Tiempo total invertido en minutos
 
     __table_args__ = (
-        db.CheckConstraint('avg_focus >= 0.0', name='check_avg_positive'),
-
-        db.CheckConstraint('num_completo >= 0.0', name='check_num_completo_positive'),
-        db.CheckConstraint('num_pospuesto >= 0.0', name='check_num_pospuesto_positive'),
-        db.CheckConstraint('num_cancelado >= 0.0', name='check_num_cancelado_positive'),
-        db.CheckConstraint('num_pendiente >= 0.0', name='check_num_pendiente_positive'),
-
-        db.CheckConstraint('end_date_range >= first_date_range', name='check_date_order'),
+        db.CheckConstraint('num_completo >= 0', name='check_num_completo_positive'),
+        db.CheckConstraint('num_pospuesto >= 0', name='check_num_pospuesto_positive'),
+        db.CheckConstraint('num_cancelado >= 0', name='check_num_cancelado_positive'),
+        db.CheckConstraint('num_pendiente >= 0', name='check_num_pendiente_positive'),
+        db.CheckConstraint('total_activities >= 0', name='check_total_activities_positive'),
+        db.CheckConstraint('total_used_time >= 0', name='check_total_used_time_positive'),
+        db.CheckConstraint('end_date_range >= init_date_range', name='check_date_order'),
     )
-
