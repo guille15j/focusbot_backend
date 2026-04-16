@@ -97,46 +97,33 @@ def calculateRecord(current_user, data):
         db.session.rollback()
         return {"message" : "Error creando el record."}, 500
     
-# def cont_completado(lista):
-#     out = []
-#     for a in lista:
-#         if a.result == ActivityResults.SUCCESS:
-#             out.append(a)
-#     return len(out)
-# def cont_pospuesto(lista):
-#     out = []
-#     for a in lista:
-#         if a.state == ActivityState.POSPUESTO:
-#             out.append(a)
-#     return len(out)
-# def cont_cancelado(lista):
-#     out = []
-#     for a in lista:
-#         if a.state == ActivityState.CANCELADO:
-#             out.append(a)
-#     return len(out)
-# def cont_pendiente(lista):
-#     out = []
-#     for a in lista:
-#         if a.state == ActivityState.PENDIENTE:
-#             out.append(a)
-#     return len(out)
-# def most_category(lista):
-#     if not lista:
-#         return None  
-#     dicc = {}
-#     for c in ActivityCategory.values():
-#         dicc [c] = 0
-#     for a in lista:
-#         dicc[a.category] += 1
-#     resultado = dict(sorted(dicc.items(), key=itemgetter(1), reverse=True))      
-#     if not resultado:
-#         return None   
-#     categoria_top = list(resultado.keys())[0]  
-#     return categoria_top.value # Devolvemos la categoría con mejor cantidad
-# def calculate_totalTime(lista):
-#     total_time = timedelta()
-#     for a in lista:
-#         if a.end_date and a.init_date:
-#             total_time += (a.end_date - a.init_date)
-#     return total_time.total_seconds() / 60
+def recordByID(current_user, record_id):
+    record = History.query.filter(History.record_id == record_id,
+                                   History.user_id == current_user.user_id
+    ).first()
+
+    if not record:
+        return {"message" : "No se ha encontrado el record en el sistema."} , 404
+    
+    record_out = {
+        'user_id': record.user_id,
+        'init_date_range': record.init_date_range.isoformat(),
+        'end_date_range': record.end_date_range.isoformat(),
+        'num_completo' : record.num_completo,
+        'num_pospuesto' : record.num_pospuesto,
+        'num_cancelado' : record.num_cancelado,
+        'num_pendiente' : record.num_pendiente,
+        'most_category' : record.most_category,
+        'total_activities' : record.total_activities,
+        'total_used_time' : record.total_used_time
+    } 
+
+    return {"record": record_out}, 200
+
+def getAllRecods (current_user):
+    list_records = History.query.filter(History.user_id == current_user.user_id).all()
+
+    if not list_records:
+        return {"records":[]}, 200
+    
+    return {"records": list_records}, 200

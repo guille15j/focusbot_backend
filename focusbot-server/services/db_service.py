@@ -125,7 +125,7 @@ class Bot(db.Model):
 class History(db.Model):
     __tablename__ = 'histories'
 
-    result_id = db.Column(db.Integer, primary_key = True)
+    record_id = db.Column(db.Integer, primary_key = True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable = False)
 
     init_date_range = db.Column(db.DateTime, nullable = False)    # Fecha inicial del rango

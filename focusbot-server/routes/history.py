@@ -1,7 +1,6 @@
 from flask import Blueprint, jsonify, request
 from utils import *
-from services.history_service import calculateRecord
-from services.db_service import History
+from services import *
 
 history_bp = Blueprint('history', __name__)
 
@@ -22,18 +21,16 @@ def calculate_history(current_user):
 
 @history_bp.route('/<int:record_id>',methods= ['GET'])
 @token_required
-def get_Recor_by_ID(current_user,record_id):
-    return jsonify({
-        "message": "Endpoint no implementado",
-        "status": "En desarrollo - Próximo sprint"
-    }), 501
+def get_Record_by_ID(current_user,record_id):
 
-@history_bp.route('/rango',methods=['GET'])
+    response, status = recordByID(current_user,record_id)
+
+    return jsonify(response), status
+
+@history_bp.route('/',methods=['GET'])
 @token_required
-def get_records_en_rango(current_user):
-    data = request.get_json()
+def get_records(current_user):
 
-    return jsonify({
-        "message": "Endpoint no implementado",
-        "status": "En desarrollo - Próximo sprint"
-    }), 501
+    records, status = getAllRecods(current_user)
+
+    return jsonify(records), status
