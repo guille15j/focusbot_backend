@@ -44,12 +44,12 @@ def getActivity(current_user, activity_id):
     if not activity:
         return {'error':'Actividad no Registrada en el sistema.'}, 404
 
-    bot = Bot.query.filter(Bot.bot_id == activity.bot_id).frist()
+    bot = Bot.query.filter(Bot.bot_id == activity.bot_id).first()
 
     if not bot:
         return {'error' : 'La actividad no tiene un Bot asignado'}, 404
 
-    act_type = ActivityType.query.filter(ActivityType.type_id == activity.type_id).frist()
+    act_type = ActivityType.query.filter(ActivityType.type_id == activity.type_id).first()
 
     if not act_type:
         return {'error' : 'La actividad no está asignada a ningun tipo.'} , 404

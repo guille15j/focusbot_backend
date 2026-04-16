@@ -16,18 +16,6 @@ def calculateRecord(current_user, data):
         Activity.end_date.between(data['init_date_range'], data['end_date_range'])
     ).all()
 
-    def to_dict(self):
-        return {
-            "result_id": self.result_id,
-            "user_id": self.user_id,
-            "init_date": self.init_date_range.strftime('%Y-%m-%d'),
-            "end_date": self.end_date_range.strftime('%Y-%m-%d'),
-            "num_completo": self.num_completo,
-            "num_pendiente": self.num_pendiente,
-            "most_category": self.most_category.name if self.most_category else None,
-            "total_activities": self.total_activities,
-            "total_used_time": str(self.total_used_time) # El Interval se lee mejor como string
-        }
 
     try:
         #Trabajamos con la lista de objetos para sacar las estadisiticas que necesitamos
@@ -49,7 +37,18 @@ def calculateRecord(current_user, data):
 
         return {
             "message": "Histórico creado con éxito", 
-            "record": record.to_dict() 
+            "record": {
+                'user_id': record.user_id,
+                'init_date_range' : record.init_date_range,
+                'end_date_range': record.end_date_range,
+                'num_completo' : record.num_completo,
+                'num_pospuesto' : record.num_pospuesto,
+                'num_cancelado' : record.num_cancelado,
+                'num_pendiente' : record.num_pendiente,
+                'most_category' : record.most_category,
+                'total_activities' : record.total_activities,
+                'total_used_time' : record.total_used_time
+            } 
         }, 201
     
 
@@ -61,7 +60,7 @@ def cont_completado(lista):
     out = []
 
     for a in lista:
-        if a.state == ActivityResults.SUCCESS:
+        if a.result == ActivityResults.SUCCESS:
             out.append(a)
 
     return len(out)

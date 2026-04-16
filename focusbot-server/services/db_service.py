@@ -58,10 +58,14 @@ class User(db.Model):
     profile_img = db.Column(db.Text)
     timezone = db.Column(db.String(50), default='UTC')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+ 
+    name_detail = db.Column(db.String(50), nullable=False)
+    description_detail = db.Column(db.String(250))
+    severity = db.Column(db.Enum(SeverityEnum), default=SeverityEnum.LEVE)
 
     activities = db.relationship('Activity', backref='user', lazy=True)
     bots = db.relationship('Bot', backref='owner', lazy=True)
-    details = db.relationship('Detail', backref='user', lazy=True)
+   
 
 class ActivityType (db.Model):
     __tablename__ = "activity_types"
@@ -119,18 +123,7 @@ class Activity(db.Model):
 
     result = db.Column(db.Enum(ActivityResults), nullable=True)
 
-class Detail(db.Model):
-    __tablename__ = 'details'
 
-    detail_id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
-    name_detail = db.Column(db.String(50), nullable=False)
-    description_detail = db.Column(db.String(250))
-    severity = db.Column(db.Enum(SeverityEnum), default=SeverityEnum.LEVE)
-
-    __table_args__ = (
-        db.UniqueConstraint('user_id', 'name_detail', name='uq_user_detail_name'),
-    )
 
 class History(db.Model):
     __tablename__ = 'histories'

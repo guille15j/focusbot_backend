@@ -1,4 +1,4 @@
-from services.db_service import db, User, Detail, SeverityEnum
+from services.db_service import db, User, SeverityEnum
 from utils import *
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -82,32 +82,30 @@ def getUser(current_user):
             'email': user.email,
             'phone': user.phone,
             'timezone': user.timezone,
-            'profile_img': user.profile_img
+            'profile_img': user.profile_img,
+            'name_detail' : user.name_detail,
+            'description_detail' : user.description_detail,
+            'severity' : user.severity.value if user.severity else None
         }
     }, 200
 
 def getDetail(current_user):
-    detail = Detail.query.filter(Detail.user_id == current_user.user_id).first()
+    detail = User.query.filter(User.user_id == current_user.user_id).first()
 
     if not detail:
         return {'detail':{}}, 200
     
     output = {
-        'detail_id': detail.detail_id,
-        'user_id': detail.user_id,
         'name_detail': detail.name_detail,
         'description_detail': detail.description_detail,
-        'severity': detail.severity
+        'severity': detail.severity.value if detail.severity else None
     }
 
     return {'detail': output}, 200
 
 def updateDetail(current_user, data):
 
-    detail = Detail.query.filter(Detail.user_id == current_user.user_id).first()
-    
-    if not detail:
-       return {"error": f"No se ha encontrado el detalle en el sistema"}, 404
+    detail = User.query.filter(User.user_id == current_user.user_id).first()
     
     validador = {
         "name_detail": lambda v: to_str(v, 50),
@@ -125,37 +123,32 @@ def updateDetail(current_user, data):
 
         return {'message' : 'Detalle actualizado con exito.'}, 200
     except Exception as e:
+        db.session.rollback()
         return {"error": f"Error actualizando el detalle - {e}"}, 500
 
 def createDetail(current_user, data):
 
-    detail = Detail.query.filter(Detail.user_id == current_user.user_id).first()
+    detail = User.query.filter(User.user_id == current_user.user_id).first()
 
-    if detail:
-       return {'message' : 'Detalle ya registrado en el sistema.'}, 200
-    
     if not "name_detail" in data:
         return {'error': 'Faltan datos obligatorios'}, 400
     
     try:
         name_d = to_str(data.get('name_detail'),50)
         severidad =  to_enum(data.get('severity'), SeverityEnum, default=SeverityEnum.LEVE)
+        descrip = to_str(data.get('description_detail'),250)
+        
+        detail.name_detail = name_d
+        detail.description_detail = descrip
+        detail.severity = severidad
 
-        detail = Detail(
-            user_id = current_user.user_id,
-            name_detail = name_d,
-            description_detail = to_str(data.get('description_detail'),250),
-            severity = severidad
-        )
-
-        db.session.add(detail)
         db.session.commit()
 
         return {
             'message' : 'Detalle registrado correctamente',
-            'detail_id': detail.detail_id
-        }, 201
+        }, 200
     
     except Exception as e:
+        db.session.rollback()
         return {'message':'Error durante la creacion del Detalle','error':to_str(e,100)}, 500
 

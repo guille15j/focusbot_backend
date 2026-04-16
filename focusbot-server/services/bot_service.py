@@ -93,7 +93,7 @@ def link_bot(data, user_id):
         return {'error': f'Error al guardar en la base de datos\n{str(e)}'}, 500
     
 def getBotById(current_user, bot_id):
-    bot = Bot.query.filter(Bot.bot_id == bot_id and Bot.user_id == current_user.user_id).first()
+    bot = Bot.query.filter(Bot.bot_id == bot_id, Bot.user_id == current_user.user_id).first()
 
     if not bot:
         return {"message" : "Bot no encontrado en el sistema"} , 404
@@ -109,7 +109,7 @@ def getBotById(current_user, bot_id):
 
 def editBot(current_user, bot_id, data):
     
-    bot = Bot.query.filter(Bot.bot_id == bot_id and Bot.user_id == current_user.user_id )
+    bot = Bot.query.filter(Bot.bot_id == bot_id , Bot.user_id == current_user.user_id ).first()
 
     if not bot:
         return {"message" : "Bot no encontrado en el sistema"}, 404
@@ -138,11 +138,10 @@ def editBot(current_user, bot_id, data):
         db.session.rollback()
         return {"message":"Error editando el bot.", "error":str(e)}, 500
 
-    return None
 
 def deleteBot(current_user, bot_id):
 
-    bot  = Bot.query.filter(Bot.user_id == current_user and Bot.bot_id == bot_id).first()
+    bot  = Bot.query.filter(Bot.user_id == current_user, Bot.bot_id == bot_id).first()
 
     if not bot:
         return {"message" : "Bot no encontrado en el sistema"}, 404
