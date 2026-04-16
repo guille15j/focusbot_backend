@@ -87,7 +87,6 @@ class Activity(db.Model):
 
     result = db.Column(db.Enum(ActivityResults), nullable=True)
 
-
 class ActivityType(db.Model):
     __tablename__ = "activity_types"
 
