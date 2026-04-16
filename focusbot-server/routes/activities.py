@@ -26,7 +26,7 @@ def getActivityByID(current_user, activity_id):
 
 @activities_bp.route("/activity", methods = ['POST'])
 @token_required
-def createActivity (current_user):
+def create_activity (current_user):
     data  = request.get_json()
 
     if not data:
@@ -49,8 +49,10 @@ def manage_activity(current_user,activity_id ):
         #Actualizacion
         response, status  = editActivity(current_user, activity_id, data)
 
-    if request.method == 'DELETE':
+    elif request.method == 'DELETE':
         response,  status = deleteActivity(current_user, activity_id)
+    else:
+        return jsonify({"message": "Método HTTP no permitido"}), 405
 
     return jsonify(response), status
 
@@ -61,25 +63,29 @@ def create_get_type(current_user):
     if request.method == 'GET':
         response, status = getTypesUsr(current_user)
 
-    if request.method == 'POST':
+    elif request.method == 'POST':
         data = request.get_json()
 
         if not data:
             return jsonify({'message':'Datos vacios en la petición.'}),400
 
         response, status = createType(current_user, data)
+    else:
+        return jsonify({"message": "Método HTTP no permitido"}), 405
 
     return jsonify(response), status
 
-@activities_bp.route("/<int:activity_type_id", methods = ['PUT','PATCH','DELETE'])
+@activities_bp.route("/type/<int:activity_type_id>", methods = ['PUT','PATCH','DELETE'])
 @token_required
 def edit_delete_type(current_user, activity_type_id):
     if request.method == 'DELETE':
         response, status = deleteType(current_user, activity_type_id)
 
-    if request.method in ['PUT', 'PATCH']:
+    elif request.method in ['PUT', 'PATCH']:
         data = request.get_json()
 
         response, status = editType(current_user, activity_type_id, data)
+    else:
+        return jsonify({"message": "Método HTTP no permitido"}), 405
 
     return jsonify(response), status

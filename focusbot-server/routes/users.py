@@ -4,7 +4,7 @@ from utils import *
 
 user_bp = Blueprint('users', __name__)
 
-@user_bp.route("/update/<int:user_id>",methods=['PATCH'])
+@user_bp.route("/update",methods=['PATCH'])
 @token_required
 def userUpdate(current_user):
     data = request.get_json()
@@ -41,7 +41,9 @@ def manageUserDetail(current_user):
     if request.method == 'POST':
         response, status = createDetail(current_user, data)
 
-    if request.method in ('PUT','PATCH'):
+    elif request.method in ('PUT','PATCH'):
         response, status = updateDetail(current_user, data)
+    else:
+        return jsonify({"message": "Método HTTP no permitido"}), 405
 
     return jsonify(response), status

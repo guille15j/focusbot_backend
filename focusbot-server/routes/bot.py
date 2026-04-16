@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request
 from services import *
 from utils import *
 import time
-from services.mqtt_service import mqtt_client
+from services.mqtt_service import mqtt_client, asegurar_conexion
 
 bot_bp = Blueprint('bot', __name__)
 
@@ -35,7 +35,7 @@ def get_edit_delete_bot(current_user, bot_id):
     if request.method == 'DELETE':
         response, status_code = deleteBot(current_user, bot_id)
 
-    if request.method in ['PUT', 'PATCH']:
+    elif request.method in ['PUT', 'PATCH']:
         data = request.get_json()
 
         if not data:
@@ -43,8 +43,11 @@ def get_edit_delete_bot(current_user, bot_id):
 
         response, status_code = editBot (current_user, bot_id, data)
 
-    if request.method == 'GET':
+    elif request.method == 'GET':
         response, status_code = getBotById(current_user, bot_id)
+    
+    else:
+        return jsonify({"message": "Método HTTP no permitido"}), 405
 
     return jsonify(response), status_code
 

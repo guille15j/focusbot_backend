@@ -23,7 +23,7 @@ def register():
     return jsonify(response), status_code
 
 @auth_bp.route('/login', methods=['POST'])
-def loggin():
+def login():
     """
     Permite gestionar el acceso con credenciales de un usuario devilviendo un 
     token de acceso gestionado con JWT que la aplicacion usará para todas las peticiones
