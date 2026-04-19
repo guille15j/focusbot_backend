@@ -7,14 +7,8 @@ db = SQLAlchemy()
 # ENUMERADORES
 class BotStatus(enum.Enum):
     OFFLINE = "OFFLINE"
-    BOOTING = "BOOTING"
-    CONFIGURING = "CONFIGURING"
     IDLE = "IDLE"
     FOCUSING = "FOCUSING"
-    PAUSED = "PAUSED"
-    BREAK = "BREAK"
-    FINISHED = "FINISHED"
-    ERROR = "ERROR"
 
 class ActivityState(enum.Enum):
     PENDIENTE = 'PENDIENTE'
