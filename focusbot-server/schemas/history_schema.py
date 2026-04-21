@@ -1,8 +1,10 @@
 from pydantic import Field
-from typing import Optional
 from datetime import datetime
 from schemas.base import BaseSchema
-from services.db_service import ActivityCategory
+
+class HistoryCalculate(BaseSchema):
+    init_date_range: datetime
+    end_date_range: datetime
 
 class HistoryResponse(BaseSchema):
     record_id: int
@@ -13,6 +15,5 @@ class HistoryResponse(BaseSchema):
     num_pospuesto: int = 0
     num_cancelado: int = 0
     num_pendiente: int = 0
-    most_category: Optional[ActivityCategory] = None
     total_activities: int = 0
-    total_used_time: Optional[int] = None
+    total_used_time: int = 0

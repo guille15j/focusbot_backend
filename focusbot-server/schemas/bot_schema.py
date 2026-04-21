@@ -25,3 +25,11 @@ class BotResponse(BotBase):
     user_id: Optional[int]
     status: BotStatus
     last_sync: Optional[datetime]
+
+class BotCommandSchema(BaseSchema):
+    mac: str
+    comando: str
+
+class BotUpdate(BaseSchema):
+    custom_name: Optional[str] = Field(None, max_length=50)
+    status: Optional[str] = None
