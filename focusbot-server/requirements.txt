@@ -6,3 +6,4 @@ python-dotenv==1.0.0
 PyJWT==2.8.0
 flask-mqtt
 flask-cors
+email-validator
