@@ -5,14 +5,7 @@ from services.email_service import generar_codigo_verificacion, enviar_correo_ve
 
 
 def register_user(data):
-    """
-    Recibe como parametro un diccionario de datos
-    Estos datos son recopilados por la aplicación
-    
-    Esta función comprobara la existencia de dicho usuario
-    -> En caso de no estar registrado lo creará
-    -> En caso de si estarlo no lo registrará de nuevo
-    """   
+
     # Buscamos que data tenga todos los campos no nulos de la base de datos
     required_fields = ['first_name', 'last_name', 'nickname', 'email', 'birth_date', 'password']
     if any(data.get(field) is None for field in required_fields):
@@ -23,10 +16,10 @@ def register_user(data):
 
     # Buscamos en la base de datos usando el moodelado de USer
     if User.query.filter_by(email = email).first():
-        return {'error':'Correo ya registrado en el sistema'}, 400
+        return {'message':'Correo ya registrado en el sistema'}, 400
 
     if User.query.filter_by(nickname = nickname).first():
-        return {'error':'Nickname ya registrado en el sistema'}, 400
+        return {'message':'Nickname ya registrado en el sistema'}, 400
 
     try:
         first_name = to_str(data['first_name'],50)
@@ -53,6 +46,18 @@ def register_user(data):
         )
     
         db.session.add(user)
+        db.session.flush()  # Obtener el user_id sin tener que hacer un commit aún
+
+        codigo = generar_codigo_verificacion()
+        user.verification_token = codigo # guardamos el codiog apra despeus comprobarlo
+
+        enviado = enviar_correo_verificacion(email, codigo)
+
+        if not enviado:
+            db.session.rollback()
+            return {'message': 'Error enviando el correo de verificación. Inténtalo de nuevo.'}, 500
+
+
         db.session.commit()
 
         token = generate_token(user.user_id)
@@ -84,9 +89,18 @@ def login_user(data):
     if not user:
         return {'message': 'Usuario no registrado en el sistema'}, 401
     
+    # Si password_hash es NULL, el usuario se registró con Google OAuth2.
+    # No puede iniciar sesión con contraseña; debe usar el botón de Google.
+    if not user.password_hash:
+        return {'message': 'Esta cuenta usa inicio de sesión con Google. Usa ese método para entrar.'}, 401
+
+    
     if not check_password_hash(user.password_hash, psswd):
         # LA comprobacion del has es negativa por loq ue no se puede iniciar sesión
         return {'message': 'Credenciales inválidas'}, 401
+    
+    if not user.verified:
+        return {'message': 'Debes verificar tu correo antes de iniciar sesión. Revisa tu bandeja de entrada o solicita un reenvío.'}, 403
 
     token = generate_token(user.user_id)
     
@@ -98,6 +112,99 @@ def login_user(data):
             'nickname': user.nickname
         }
     }, 200 
+
+def verify_email(email, codigo):
+    """
+    Verifica el email del usuario comparando el código de 6 dígitos
+    que introdujo en la app con el almacenado en verification_token.
+
+    Flujo:
+      1. Busca al usuario por email.
+      2. Si no existe, devuelve 404.
+      3. Si ya está verificado, informa (200).
+      4. Si no hay código pendiente, error 400.
+      5. Si el código no coincide, error 400.
+      6. Si coincide: marca verified=True, borra el código, devuelve JWT.
+
+    La búsqueda por email + código evita colisiones accidentales entre
+    dos usuarios que pudieran tener el mismo código de 6 dígitos.
+    """
+    user = User.query.filter_by(email=email).first()
+
+    if not user:
+        return {'message': 'Usuario no encontrado'}, 404
+
+    if user.verified:
+        return {'message': 'Esta cuenta ya está verificada. Puedes iniciar sesión.'}, 200
+
+    if not user.verification_token:
+        return {'message': 'No hay un código de verificación pendiente. Solicita uno nuevo.'}, 400
+
+    if user.verification_token != codigo:
+        return {'message': 'Código incorrecto. Revisa el correo e inténtalo de nuevo.'}, 400
+
+    try:
+        user.verified = True
+        user.verification_token = None 
+        db.session.commit()
+
+        # El usuario demostró ser dueño del email: entregamos JWT
+        token = generate_token(user.user_id)
+
+        return {
+            'message': 'Correo verificado correctamente.',
+            'token': token,
+            'user': {
+                'user_id': user.user_id,
+                'nickname': user.nickname
+            }
+        }, 200
+
+    except Exception as e:
+        db.session.rollback()
+        return {'message': 'Error verificando el correo', 'error': str(e)}, 500
+
+def reenviar_verificacion(identifier):
+    """
+    Reenvía el código de verificación por correo cuando el usuario
+    no recibió el anterior, lo perdió o expiró.
+
+    - identifier puede ser email o nickname.
+    - Si el usuario no existe, devuelve 404.
+    - Si ya está verificado, informa sin hacer nada.
+    - Si no está verificado, genera un código nuevo (invalidando el anterior)
+      y lo envía por correo.
+    """
+   
+    user = User.query.filter(
+        (User.email == identifier) | (User.nickname == identifier)
+    ).first()
+
+    if not user:
+        return {'message': 'Usuario no encontrado'}, 404
+
+    if user.verified:
+        return {'message': 'Esta cuenta ya está verificada. Puedes iniciar sesión.'}, 200
+
+    try:
+        # Generar código nuevo (el anterior queda invalidado automáticamente)
+        codigo = generar_codigo_verificacion()
+        user.verification_token = codigo # Aquí se invalida el codigo
+
+        # Enviar el nuevo código por correo
+        enviado = enviar_correo_verificacion(user.email, codigo)
+
+        if not enviado:
+            db.session.rollback()
+            return {'message': 'Error enviando el correo. Inténtalo de nuevo.'}, 500
+
+        db.session.commit()
+
+        return {'message': 'Nuevo código enviado. Revisa tu correo.'}, 200
+
+    except Exception as e:
+        db.session.rollback()
+        return {'message': 'Error reenviando el código', 'error': str(e)}, 500
 
 def reset_password(data):
     identifier = data.get('identifier') 

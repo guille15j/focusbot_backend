@@ -1,5 +1,5 @@
 from .db_service import db, User, Bot, Activity, ActivityState, BotStatus, ActivityType, History, ActivityCategory, SeverityEnum, ActivityResults
-from .auth_service import register_user, login_user, reset_password
+from .auth_service import register_user, login_user, reset_password, verify_email, reenviar_verificacion
 from .mqtt_service import init_mqtt, mqtt_client, on_connect, asegurar_conexion
 from .bot_service import link_bot, getBotsByUser, getBotById, editBot, deleteBot
 from .user_service import updateUserPatch, getUser, getDetail, updateDetail, createDetail
@@ -25,6 +25,8 @@ __all__ = [
     'register_user', 
     'login_user', 
     'reset_password',
+    'verify_email',
+    'reenviar_verificacion',
 
     # MQTT
     'mqtt_client',
