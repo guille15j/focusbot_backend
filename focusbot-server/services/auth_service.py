@@ -1,6 +1,8 @@
 from services.db_service import db, User, SeverityEnum
 from utils import *
 from werkzeug.security import generate_password_hash, check_password_hash
+from services.email_service import generar_codigo_verificacion, enviar_correo_verificacion
+
 
 def register_user(data):
     """
