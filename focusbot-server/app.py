@@ -17,6 +17,7 @@ def create_app():
 
     # Blueprints (Rutas)
     app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(google_bp, url_prefix='/auth')
     app.register_blueprint(bot_bp, url_prefix='/bot')
     app.register_blueprint(activities_bp, url_prefix='/activities')
     app.register_blueprint(history_bp, url_prefix='/history')
