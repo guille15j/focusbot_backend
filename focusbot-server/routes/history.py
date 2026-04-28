@@ -1,7 +1,8 @@
 from flask import Blueprint, jsonify, request
 from utils import *
 from services import *
-from schemas.history_schema import HistoryCalculate  # Importa el schema
+from schemas.history_schema import HistoryCalculate 
+from schemas.base import validate_schema
 
 history_bp = Blueprint('history', __name__)
 
@@ -12,7 +13,7 @@ def history_check():
 @history_bp.route('/calculate', methods=['POST'])
 @token_required
 @validate_schema(HistoryCalculate) 
-def calculate_history(current_user, validated_data):
+def calculate_history( validated_data, current_user):
     # validated_data ya es un objeto con init_date_range y end_date_range
     response, status = calculateRecord(current_user, validated_data.model_dump())
     return jsonify(response), status
