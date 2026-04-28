@@ -4,7 +4,7 @@ from .mqtt_service import init_mqtt, mqtt_client, on_connect, asegurar_conexion
 from .bot_service import link_bot, getBotsByUser, getBotById, editBot, deleteBot
 from .user_service import updateUserPatch, getUser, getDetail, updateDetail, createDetail
 from .activity_service import getActivitiesUsr, getActivity, createActivity, editActivity, deleteActivity, getTypesUsr, createType, editType, deleteType
-from .history_service import recordByID, calculateRecord, getAllRecods
+from .history_service import recordByID, calculateRecord, getAllRecords
 
 
 __all__ = [
@@ -60,5 +60,5 @@ __all__ = [
     #Histories
     'calculateRecord',
     'recordByID',
-    'getAllRecods'
+    'getAllRecords'
 ]

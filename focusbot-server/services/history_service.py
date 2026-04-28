@@ -2,6 +2,7 @@ from services.db_service import db, Activity, ActivityState, ActivityCategory, A
 from utils import *
 from operator import itemgetter
 from datetime import timedelta
+from sqlalchemy import or_, and_
 
 def calculateRecord(current_user, data):
 
@@ -12,10 +13,10 @@ def calculateRecord(current_user, data):
 
     list_activities = Activity.query.filter(
         Activity.user_id == current_user.user_id, 
-        db.or_(
-            db.and_(Activity.init_date >= data['init_date_range'], Activity.init_date <= data['end_date_range']),
-            db.and_(Activity.end_date >= data['init_date_range'], Activity.end_date <= data['end_date_range']),
-            db.and_(Activity.init_date <= data['init_date_range'], Activity.end_date >= data['end_date_range'])
+        or_(
+            and_(Activity.init_date >= data['init_date_range'], Activity.init_date <= data['end_date_range']),
+            and_(Activity.end_date >= data['init_date_range'], Activity.end_date <= data['end_date_range']),
+            and_(Activity.init_date <= data['init_date_range'], Activity.end_date >= data['end_date_range'])
         )
     ).all()
 
@@ -120,7 +121,7 @@ def recordByID(current_user, record_id):
 
     return {"record": record_out}, 200
 
-def getAllRecods (current_user):
+def getAllRecords (current_user):
     list_records = History.query.filter(History.user_id == current_user.user_id).all()
 
     if not list_records:
