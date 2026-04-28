@@ -7,3 +7,6 @@ PyJWT==2.8.0
 flask-mqtt
 flask-cors
 email-validator
+google-auth
+google-auth-oauthlib
+requests

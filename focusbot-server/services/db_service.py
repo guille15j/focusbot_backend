@@ -47,8 +47,37 @@ class User(db.Model):
     nickname = db.Column(db.String(20), nullable=False, unique=True)
     phone = db.Column(db.String(20))
     email = db.Column(db.String(100), nullable=False, unique=True)
-    password_hash = db.Column(db.Text, nullable=False)
-    birth_date = db.Column(db.Date, nullable=False)
+    
+    # Se permite NULL para usuarios autenticados con Google OAuth2,
+    # ya que Google gestiona la contraseña y nosotros no debemos almacenarla.
+    password_hash = db.Column(db.Text, nullable=True)
+
+    # Se permite NULL para usuarios de Google OAuth2, ya que Google no proporciona
+    # la fecha de nacimiento en el scope básico de autenticación.
+    # El usuario puede completarla posteriormente desde la sección de perfil.
+    birth_date = db.Column(db.Date, nullable=True)
+    
+    # Indica si el usuario ha verificado su email mediante el enlace enviado tras el registro.
+    # Por defecto es False. Se cambia a True cuando el usuario hace clic en el enlace.
+    # Los usuarios de Google OAuth2 se crean con verified=True automáticamente,
+    # porque Google ya ha verificado el email del usuario.
+    verified = db.Column(db.Boolean, default=False, nullable=False)
+
+    # Almacena el token de verificación enviado por email tras el registro.
+    # Se genera en el momento del registro y se elimina (se pone a NULL)
+    # cuando el usuario verifica su email correctamente.
+    # Es nullable=True porque:
+    #   - Los usuarios de Google no pasan por este flujo (se crean como verified=True).
+    #   - Los usuarios que ya verificaron su email no necesitan conservarlo.
+    verification_token = db.Column(db.String(255), nullable=True)
+
+    # Identificador único del usuario en Google (campo 'sub' del token OAuth2).
+    # Permite vincular de forma inmutable una cuenta de Google con un usuario de nuestra app.
+    #   - Es unique=True porque cada cuenta de Google solo puede estar vinculada a un usuario.
+    #   - Es nullable=True porque los usuarios registrados con email/contraseña no tienen Google ID.
+    #   - Si un usuario de email/contraseña luego usa Google, se vincula este campo a su cuenta.
+    google_id = db.Column(db.String(255), nullable=True, unique=True)
+
     profile_img = db.Column(db.Text)
     timezone = db.Column(db.String(50), default='UTC')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
