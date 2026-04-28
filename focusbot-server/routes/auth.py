@@ -1,6 +1,6 @@
-from flask import Blueprint, jsonify
-from services import register_user, login_user, reset_password
-from schemas.auth_schema import LoginSchema, ResetPasswordSchema
+from flask import Blueprint, jsonify, request
+from services import register_user, login_user, reset_password, verify_email, reenviar_verificacion
+from schemas.auth_schema import LoginSchema, ResetPasswordSchema, VerifyEmailSchema
 from schemas.user_schema import UserCreate
 from schemas.base import validate_schema
 
@@ -27,4 +27,41 @@ def login(credentials: LoginSchema):
 @validate_schema(ResetPasswordSchema)
 def resetPswd(data: ResetPasswordSchema):
     response, status_code = reset_password(data.model_dump())
+    return jsonify(response), status_code
+
+@auth_bp.route('/verify', methods=['POST'])
+def verify_email_route():
+    """
+    Verifica el email del usuario mediante código de 6 dígitos.
+    
+    Recibe JSON: { "email": "usuario@correo.com", "codigo": "123456" }
+    
+    Si el código es correcto:
+      - Marca la cuenta como verificada.
+      - Devuelve token JWT (el usuario ya puede usar la app).
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({'message': 'Se requiere un cuerpo JSON'}), 400
+
+    validated = VerifyEmailSchema(**data)
+    response, status_code = verify_email(validated.email, validated.codigo)
+    return jsonify(response), status_code
+
+@auth_bp.route('/resend-verification', methods=['POST'])
+def resend_verification_route():
+    """
+    Reenvía el código de verificación por correo.
+    
+    Recibe JSON: { "identifier": "email o nickname" }
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({'message': 'Se requiere un cuerpo JSON'}), 400
+
+    identifier = data.get('identifier')
+    if not identifier:
+        return jsonify({'message': 'Debes proporcionar un email o nickname'}), 400
+
+    response, status_code = reenviar_verificacion(identifier)
     return jsonify(response), status_code
