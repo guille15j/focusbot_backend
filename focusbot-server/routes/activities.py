@@ -3,7 +3,7 @@ from services import (getActivitiesUsr, getActivity, createActivity,
                       editActivity, deleteActivity, getTypesUsr, createType, 
                       editType, deleteType)
 from utils import token_required
-from schemas.activity_schema import ActivityCreate, ActivityUpdate, ActivityTypeBase
+from schemas.activity_schema import ActivityCreate, ActivityUpdate, ActivityTypeBase, ActivityTypeUpdate
 from schemas.base import validate_schema
 
 activities_bp = Blueprint('activities', __name__)
@@ -58,6 +58,6 @@ def edit_delete_type_route(current_user, activity_type_id):
         response, status = deleteType(current_user, activity_type_id)
     else: # PUT/PATCH
         data = request.get_json()
-        validated = ActivityTypeBase(**data) # O podrías crear ActivityTypeUpdate
+        validated = ActivityTypeUpdate(**data)
         response, status = editType(current_user, activity_type_id, validated.model_dump(exclude_unset=True))
     return jsonify(response), status

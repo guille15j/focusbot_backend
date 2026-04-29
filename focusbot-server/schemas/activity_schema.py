@@ -46,3 +46,10 @@ class ActivityResponse(ActivityBase):
     bot_id: int
     state: ActivityState
     result: Optional[ActivityResults]
+
+class ActivityTypeUpdate(BaseSchema):
+    name_type: Optional[str] = Field(None, max_length=50)
+    work_duration: Optional[int] = Field(None, ge=0)
+    short_break: Optional[int] = Field(None, ge=0)
+    long_break: Optional[int] = Field(None, ge=0)
+    cycles_before_long: Optional[int] = Field(None, ge=0)
