@@ -126,38 +126,22 @@ def createActivity(current_user, data):
         return {'message':'Error registrando la actividad', 'error' : str(e)}, 500
 
 def editActivity(current_user, activity_id, data):
-    act = Activity.query.filter(Activity.activity_id == activity_id, Activity.user_id == current_user.user_id).first()
+    act = Activity.query.filter(
+        Activity.activity_id == activity_id,
+        Activity.user_id == current_user.user_id
+    ).first()
 
     if not act:
         return {"error": "Actividad no encontrada o no tienes permiso para editarla"}, 404
 
-    validador = {
-        "type_id": lambda v: int(v),
-        "bot_id": lambda v: int(v),
-        "title": lambda v: to_str(v, 100),
-        "description": lambda v: to_str(v, 250),
-        "init_date": lambda v: datetime.fromisoformat(v) if isinstance(v, str) else v,
-        "end_date": lambda v: datetime.fromisoformat(v) if isinstance(v, str) else v,
-        "category": lambda v: to_enum(v,ActivityCategory, default=ActivityCategory.OTRAS),
-        "state": lambda v: to_enum(v,ActivityState, default=ActivityState.PENDIENTE),
-        "result": lambda v: to_enum(v, ActivityResults)
-    }
-
     try:
-        for field, transform in validador.items():
-            if field in data and data[field] is not None:
-                verificado = transform(data[field])
-                setattr(act, field, verificado)
-        
+        for field, value in data.items():
+            if value is not None:
+                setattr(act, field, value)
+
         db.session.commit()
+        return {"message": "Actividad actualizada correctamente."}, 200
 
-        return {
-            "message": "Actividad actualizada correctamente."
-        }, 200
-
-    except ValueError as ve:
-        db.session.rollback()
-        return {"error": str(ve)}, 400
     except Exception as e:
         db.session.rollback()
         return {"error": "Error actualizando la actividad", "details": str(e)}, 500

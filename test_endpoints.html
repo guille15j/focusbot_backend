@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FocusApp - Panel de Pruebas de API</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1100px; margin: 20px auto; padding: 0 20px; background: #f8f9fa; }
+        h1 { color: #333; border-bottom: 2px solid #4CAF50; padding-bottom: 10px; }
+        h2 { color: #555; margin-top: 25px; cursor: pointer; padding: 10px; background: #e7e7e7; border-radius: 5px; }
+        h2:hover { background: #d5d5d5; }
+        .seccion { margin-bottom: 20px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; background: white; }
+        .seccion-body { padding: 15px; display: block; }
+        .oculto .seccion-body { display: none; }
+        .endpoint { margin-bottom: 15px; border: 1px solid #eee; border-radius: 5px; padding: 10px; }
+        .endpoint-header { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; flex-wrap: wrap; }
+        .metodo { font-weight: bold; padding: 3px 8px; border-radius: 3px; font-size: 12px; color: white; min-width: 55px; text-align: center; }
+        .GET { background: #4CAF50; }
+        .POST { background: #2196F3; }
+        .PATCH { background: #FF9800; }
+        .PUT { background: #FF9800; }
+        .DELETE { background: #f44336; }
+        .ruta { font-family: monospace; font-size: 14px; color: #333; }
+        .descripcion { font-size: 12px; color: #888; margin-bottom: 5px; font-style: italic; }
+        button { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; margin-left: auto; }
+        .btn-probar { background: #4CAF50; color: white; }
+        .btn-probar:hover { background: #45a049; }
+        textarea { width: 100%; height: 60px; font-family: monospace; font-size: 12px; padding: 5px; border: 1px solid #ccc; border-radius: 3px; resize: vertical; margin-top: 5px; }
+        pre { padding: 10px; border-radius: 5px; max-height: 200px; overflow-y: auto; font-size: 12px; white-space: pre-wrap; display: none; margin-top: 5px; }
+        .exito { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .login-box { background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; }
+        .login-box input { padding: 8px; margin: 5px; border: 1px solid #ccc; border-radius: 4px; width: 200px; }
+        .login-box button { padding: 8px 20px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
+        .token-display { font-size: 11px; color: #666; margin-top: 8px; word-break: break-all; }
+    </style>
+</head>
+<body>
+
+<h1>🧪 FocusApp - Panel de Pruebas de API</h1>
+
+<div class="login-box">
+    <h3>🔐 Obtener Token (Login)</h3>
+    <input type="text" id="login-email" placeholder="Email o nickname" value="juanperez">
+    <input type="password" id="login-password" placeholder="Contraseña" value="unaClaveSegura123">
+    <button onclick="hacerLogin()">Login</button>
+    <div class="token-display">Token: <span id="token-span">No obtenido</span></div>
+</div>
+
+<div id="secciones"></div>
+
+<script>
+    const BASE_URL = 'http://localhost:5000';
+    let TOKEN = '';
+
+    const ENDPOINTS = {
+        "auth": [
+            { metodo: "POST", ruta: "/auth/register", desc: "Registra un nuevo usuario (envía código de verificación por correo)", body: '{"first_name":"Ana","last_name":"López","nickname":"analopez","email":"tu_correo+ana@gmail.com","birth_date":"2001-03-10","password":"ClaveSegura789","timezone":"Europe/Madrid"}' },
+            { metodo: "POST", ruta: "/auth/verify", desc: "Verifica el email con el código de 6 dígitos recibido", body: '{"email":"tu_correo@gmail.com","codigo":"123456"}' },
+            { metodo: "POST", ruta: "/auth/resend-verification", desc: "Reenvía el código de verificación al correo del usuario", body: '{"identifier":"analopez"}' }
+        ],
+        "activities": [
+            { metodo: "GET", ruta: "/activities/", desc: "Obtiene todas las actividades del usuario autenticado", body: null },
+            { metodo: "GET", ruta: "/activities/3", desc: "Obtiene una actividad por su ID (incluye datos del bot y del tipo)", body: null },
+            { metodo: "POST", ruta: "/activities/activity", desc: "Crea una nueva actividad (requiere type_id, bot_id, title, category)", body: '{"type_id":1,"bot_id":1,"title":"Estudiar para el examen","description":"Repasar capítulos 1-5","category":"ESTUDIOS"}' },
+            { metodo: "PATCH", ruta: "/activities/3", desc: "Actualiza parcialmente una actividad (title, state, category, etc.)", body: '{"title":"Estudiar actualizado","state":"EN_CURSO"}' },
+            { metodo: "DELETE", ruta: "/activities/3", desc: "Elimina una actividad (solo si no está completada ni en curso)", body: null },
+            { metodo: "GET", ruta: "/activities/type", desc: "Obtiene todos los tipos de actividad del usuario", body: null },
+            { metodo: "POST", ruta: "/activities/type", desc: "Crea un nuevo tipo de actividad (Pomodoro, Hitos, etc.)", body: '{"name_type":"Pomodoro Pro","work_duration":30,"short_break":5,"long_break":15,"cycles_before_long":4}' },
+            { metodo: "PATCH", ruta: "/activities/type/1", desc: "Actualiza un tipo de actividad existente", body: '{"work_duration":45}' },
+            { metodo: "DELETE", ruta: "/activities/type/1", desc: "Elimina un tipo de actividad (no permite borrar los del sistema)", body: null }
+        ],
+        "bot": [
+            { metodo: "GET", ruta: "/bot/check", desc: "Verifica que la API de bots está operativa (no requiere token)", body: null },
+            { metodo: "POST", ruta: "/bot/pair", desc: "Vincula un nuevo bot (FocusBot) al usuario mediante MAC address", body: '{"mac_address":"AA:BB:CC:DD:EE:FF","custom_name":"FocusBot-Sala"}' },
+            { metodo: "GET", ruta: "/bot/getByUser", desc: "Obtiene todos los bots vinculados al usuario autenticado", body: null },
+            { metodo: "GET", ruta: "/bot/1", desc: "Obtiene los datos de un bot por su ID", body: null },
+            { metodo: "PATCH", ruta: "/bot/1", desc: "Actualiza datos de un bot (nombre, estado)", body: '{"custom_name":"FocusBot-Oficina"}' },
+            { metodo: "DELETE", ruta: "/bot/1", desc: "Desvincula y elimina un bot del usuario", body: null },
+            { metodo: "POST", ruta: "/bot/command", desc: "Envía un comando MQTT a un bot (START, STOP, etc.)", body: '{"mac":"AA:BB:CC:DD:EE:FF","comando":"START"}' }
+        ],
+        "history": [
+            { metodo: "GET", ruta: "/history/check", desc: "Verifica que la API de historial está operativa (no requiere token)", body: null },
+            { metodo: "GET", ruta: "/history/", desc: "Obtiene todos los registros de historial del usuario", body: null },
+            { metodo: "POST", ruta: "/history/calculate", desc: "Calcula estadísticas de actividades en un rango de fechas", body: '{"init_date_range":"2026-04-01 00:00:00","end_date_range":"2026-04-30 23:59:59"}' },
+            { metodo: "GET", ruta: "/history/1", desc: "Obtiene un registro de historial por su ID", body: null }
+        ],
+        "users": [
+            { metodo: "GET", ruta: "/users/user", desc: "Obtiene los datos del perfil del usuario autenticado", body: null },
+            { metodo: "PATCH", ruta: "/users/update", desc: "Actualiza datos del perfil (nombre, email, nickname, etc.)", body: '{"first_name":"JuanEditado"}' },
+            { metodo: "GET", ruta: "/users/detail", desc: "Obtiene el detalle del perfil (severidad, descripción)", body: null },
+            { metodo: "POST", ruta: "/users/detail", desc: "Crea el detalle del perfil del usuario", body: '{"name_detail":"Perfil Pro","description_detail":"Usuario avanzado de FocusApp","severity":"MEDIO"}' },
+            { metodo: "PATCH", ruta: "/users/detail", desc: "Actualiza el detalle del perfil", body: '{"severity":"ALTO"}' }
+        ]
+    };
+
+    function hacerLogin() {
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+        
+        fetch(BASE_URL + '/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ identifier: email, password: password })
+        })
+        .then(r => r.json())
+        .then(data => {
+            const span = document.getElementById('token-span');
+            if (data.token) {
+                TOKEN = data.token;
+                span.textContent = TOKEN.substring(0, 40) + '...';
+                span.style.color = 'green';
+            } else {
+                span.textContent = 'Error: ' + JSON.stringify(data.message || data.error);
+                span.style.color = 'red';
+            }
+        })
+        .catch(err => {
+            const span = document.getElementById('token-span');
+            span.textContent = 'Error de conexión';
+            span.style.color = 'red';
+        });
+    }
+
+    function probarEndpoint(ruta, metodo, bodyTextareaId, idRespuesta) {
+        let body = null;
+        if (bodyTextareaId) {
+            const textarea = document.getElementById(bodyTextareaId);
+            if (textarea) body = textarea.value;
+        }
+        
+        const options = {
+            method: metodo,
+            headers: { 'Content-Type': 'application/json' }
+        };
+        
+        if (TOKEN) options.headers['Authorization'] = 'Bearer ' + TOKEN;
+        if (body && metodo !== 'GET') options.body = body;
+
+        fetch(BASE_URL + ruta, options)
+        .then(r => r.json())
+        .then(data => {
+            const pre = document.getElementById(idRespuesta);
+            pre.textContent = JSON.stringify(data, null, 2);
+            pre.style.display = 'block';
+            pre.className = data.error ? 'error' : 'exito';
+        })
+        .catch(err => {
+            const pre = document.getElementById(idRespuesta);
+            pre.textContent = 'Error de conexión: ' + err.message;
+            pre.style.display = 'block';
+            pre.className = 'error';
+        });
+    }
+
+    function toggleSeccion(id) {
+        document.getElementById(id).classList.toggle('oculto');
+    }
+
+    window.onload = function() {
+        const container = document.getElementById('secciones');
+        
+        for (const [carpeta, endpoints] of Object.entries(ENDPOINTS)) {
+            const seccionId = 'seccion-' + carpeta;
+            let html = '<div class="seccion" id="' + seccionId + '">';
+            html += '<h2 onclick="toggleSeccion(\'' + seccionId + '\')">📁 ' + carpeta.toUpperCase() + ' (' + endpoints.length + ' endpoints)</h2>';
+            html += '<div class="seccion-body">';
+            
+            endpoints.forEach((ep, i) => {
+                const bodyId = 'body-' + carpeta + '-' + i;
+                const respId = 'resp-' + carpeta + '-' + i;
+                const tieneBody = ep.body !== null;
+                
+                html += '<div class="endpoint">';
+                html += '<div class="endpoint-header">';
+                html += '<span class="metodo ' + ep.metodo + '">' + ep.metodo + '</span>';
+                html += '<span class="ruta">' + ep.ruta + '</span>';
+                html += '<button class="btn-probar" onclick="probarEndpoint(\'' + ep.ruta + '\',\'' + ep.metodo + '\',\'' + (tieneBody ? bodyId : '') + '\',\'' + respId + '\')">🔍 Probar</button>';
+                html += '</div>';
+                html += '<div class="descripcion">' + ep.desc + '</div>';
+                
+                if (tieneBody) {
+                    html += '<textarea id="' + bodyId + '">' + ep.body + '</textarea>';
+                }
+                
+                html += '<pre id="' + respId + '"></pre>';
+                html += '</div>';
+            });
+            
+            html += '</div></div>';
+            container.innerHTML += html;
+        }
+    };
+</script>
+</body>
+</html>

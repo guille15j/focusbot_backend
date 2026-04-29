@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Probar Google Login - FocusApp</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 20px;
+            text-align: center;
+        }
+        #google-btn {
+            background-color: #4285F4;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 20px 0;
+        }
+        #google-btn:hover {
+            background-color: #357ae8;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            display: none;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            display: block !important;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            display: block !important;
+        }
+        pre {
+            text-align: left;
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>FocusApp - Google Login Test</h1>
+    <p>Haz clic en el botón para probar el inicio de sesión con Google.</p>
+    
+    <button id="google-btn">Iniciar sesión con Google</button>
+    
+    <div id="status"></div>
+    <pre id="response" style="display:none;"></pre>
+
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
+    <script>
+        // Sustituye esto por tu GOOGLE_CLIENT_ID real
+        const GOOGLE_CLIENT_ID = '767551510601-m46aklgg3tsrhr64viqd9pcpi8rbr4bb.apps.googleusercontent.com';
+        
+        // URL de tu API Flask
+        const API_URL = 'http://localhost:5000/auth/google';
+
+        function mostrarResultado(tipo, titulo, datos) {
+            const statusDiv = document.getElementById('status');
+            const responsePre = document.getElementById('response');
+            
+            statusDiv.className = tipo;
+            statusDiv.textContent = titulo;
+            
+            responsePre.style.display = 'block';
+            responsePre.textContent = JSON.stringify(datos, null, 2);
+        }
+
+        function manejarCredentialResponse(response) {
+            console.log('Token de Google recibido:', response.credential);
+            
+            // Enviar el token a nuestra API
+            fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    token: response.credential
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.token) {
+                    mostrarResultado('success', '✅ Login exitoso', data);
+                    // Guardar token JWT en localStorage para usarlo después
+                    localStorage.setItem('focusapp_token', data.token);
+                    console.log('JWT guardado:', data.token);
+                } else {
+                    mostrarResultado('error', '❌ Error del servidor', data);
+                }
+            })
+            .catch(error => {
+                mostrarResultado('error', '❌ Error de conexión', { error: error.message });
+            });
+        }
+
+        // Inicializar Google Identity Services
+        window.onload = function() {
+            google.accounts.id.initialize({
+                client_id: GOOGLE_CLIENT_ID,
+                callback: manejarCredentialResponse,
+                auto_select: false
+            });
+
+            // Asociar el botón
+            google.accounts.id.renderButton(
+                document.getElementById('google-btn'),
+                { 
+                    theme: 'filled_blue', 
+                    size: 'large',
+                    text: 'continue_with',
+                    shape: 'rectangular'
+                }
+            );
+        };
+    </script>
+</body>
+</html>
