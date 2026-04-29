@@ -87,7 +87,7 @@ def calculateRecord(current_user, data):
                 'num_pospuesto' : record.num_pospuesto,
                 'num_cancelado' : record.num_cancelado,
                 'num_pendiente' : record.num_pendiente,
-                'most_category' : record.most_category,
+                'most_category': record.most_category.value if record.most_category else None,
                 'total_activities' : record.total_activities,
                 'total_used_time' : record.total_used_time
             } 
@@ -114,7 +114,7 @@ def recordByID(current_user, record_id):
         'num_pospuesto' : record.num_pospuesto,
         'num_cancelado' : record.num_cancelado,
         'num_pendiente' : record.num_pendiente,
-        'most_category' : record.most_category,
+        'most_category': record.most_category.value if record.most_category else None,
         'total_activities' : record.total_activities,
         'total_used_time' : record.total_used_time
     } 
@@ -124,7 +124,20 @@ def recordByID(current_user, record_id):
 def getAllRecords (current_user):
     list_records = History.query.filter(History.user_id == current_user.user_id).all()
 
-    if not list_records:
-        return {"records":[]}, 200
-    
-    return {"records": list_records}, 200
+    records_out = []
+    for r in list_records:
+        records_out.append({
+            'record_id': r.record_id,
+            'user_id': r.user_id,
+            'init_date_range': r.init_date_range.isoformat(),
+            'end_date_range': r.end_date_range.isoformat(),
+            'num_completo': r.num_completo,
+            'num_pospuesto': r.num_pospuesto,
+            'num_cancelado': r.num_cancelado,
+            'num_pendiente': r.num_pendiente,
+            'most_category': r.most_category.value if r.most_category else None,
+            'total_activities': r.total_activities,
+            'total_used_time': r.total_used_time
+        })
+
+    return {"records": records_out}, 200

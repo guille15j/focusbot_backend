@@ -15,7 +15,10 @@ def history_check():
 @validate_schema(HistoryCalculate) 
 def calculate_history( validated_data, current_user):
     # validated_data ya es un objeto con init_date_range y end_date_range
-    response, status = calculateRecord(current_user, validated_data.model_dump())
+    response, status = calculateRecord(current_user, {
+        'init_date_range': validated_data.init_date_range,
+        'end_date_range': validated_data.end_date_range
+    })
     return jsonify(response), status
 
 @history_bp.route('/<int:record_id>', methods=['GET'])
