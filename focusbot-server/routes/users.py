@@ -3,6 +3,7 @@ from services import updateUserPatch, getUser, getDetail, createDetail, updateDe
 from utils import token_required
 from schemas.user_schema import UserBase # Usamos UserBase para actualizaciones parciales
 from schemas.base import validate_schema
+from schemas.user_schema import UserBase, UserUpdate
 
 user_bp = Blueprint('users', __name__)
 
@@ -11,7 +12,7 @@ user_bp = Blueprint('users', __name__)
 def userUpdate(current_user):
     data = request.get_json()
     # Usamos el schema para validar lo que venga, pero permitimos campos opcionales
-    validated = UserBase.model_validate(data) 
+    validated = UserUpdate(**data)
     response, status_code = updateUserPatch(current_user.user_id, validated.model_dump(exclude_unset=True))
     return jsonify(response), status_code
 

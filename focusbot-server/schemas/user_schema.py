@@ -22,3 +22,13 @@ class UserCreate(UserBase):
 class UserResponse(UserBase):
     user_id: int
     created_at: datetime
+
+class UserUpdate(BaseSchema):
+    first_name: Optional[str] = Field(None, max_length=50)
+    last_name: Optional[str] = Field(None, max_length=50)
+    nickname: Optional[str] = Field(None, max_length=20)
+    email: Optional[str] = Field(None)
+    phone: Optional[str] = Field(None, max_length=20)
+    birth_date: Optional[date] = None
+    timezone: Optional[str] = Field(None, max_length=50)
+    profile_img: Optional[str] = Field(None)
