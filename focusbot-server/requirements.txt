@@ -10,3 +10,4 @@ email-validator
 google-auth
 google-auth-oauthlib
 requests
+pydantic==2.10.6
