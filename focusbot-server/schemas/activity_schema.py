@@ -23,6 +23,7 @@ class ActivityBase(BaseSchema):
     category: ActivityCategory = ActivityCategory.OTRAS
     init_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
+    metadata: Optional[dict] = None
 
 class ActivityCreate(ActivityBase):
     type_id: int
@@ -38,6 +39,7 @@ class ActivityUpdate(BaseSchema):
     result: Optional[ActivityResults] = None
     init_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
+    metadata: Optional[dict] = None
 
 class ActivityResponse(ActivityBase):
     activity_id: int
@@ -46,3 +48,4 @@ class ActivityResponse(ActivityBase):
     bot_id: int
     state: ActivityState
     result: Optional[ActivityResults]
+    metadata: Optional[dict] = None

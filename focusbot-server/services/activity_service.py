@@ -110,7 +110,8 @@ def createActivity(current_user, data):
             end_date = end_date,
             state = ActivityState.PENDIENTE,
             category = category,
-            result = None            
+            result = None ,
+            metadata = data.get('metadata', {})          
         )
 
         db.session.add(act)
