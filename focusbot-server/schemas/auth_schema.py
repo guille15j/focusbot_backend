@@ -18,3 +18,10 @@ class VerifyEmailSchema(BaseSchema):
     """
     email: str = Field(..., description="Email del usuario a verificar")
     codigo: str = Field(..., min_length=6, max_length=6, description="Código de 6 dígitos recibido por correo")
+
+class ResendVerificationSchema(BaseSchema):
+    """
+    Schema para validar la petición de reenvío de código de verificación.
+    - identifier: email o nickname del usuario.
+    """
+    identifier: str = Field(..., description="Email o nickname del usuario")

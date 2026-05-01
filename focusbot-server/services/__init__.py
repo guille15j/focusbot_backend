@@ -2,7 +2,7 @@ from .db_service import db, User, Bot, Activity, ActivityState, BotStatus, Activ
 from .auth_service import register_user, login_user, reset_password, verify_email, reenviar_verificacion
 from .mqtt_service import init_mqtt, mqtt_client, on_connect, asegurar_conexion
 from .bot_service import link_bot, getBotsByUser, getBotById, editBot, deleteBot
-from .user_service import updateUserPatch, getUser, getDetail, updateDetail, createDetail
+from .user_service import updateUserPatch, getUser
 from .activity_service import getActivitiesUsr, getActivity, createActivity, editActivity, deleteActivity, getTypesUsr, createType, editType, deleteType
 from .history_service import recordByID, calculateRecord, getAllRecords
 
@@ -37,9 +37,6 @@ __all__ = [
     # User
     'updateUserPatch',
     'getUser',
-    'getDetail',
-    'updateDetail',
-    'createDetail',
 
     # Bots
     'link_bot',

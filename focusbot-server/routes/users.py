@@ -21,19 +21,3 @@ def userUpdate(current_user):
 def getUserById(current_user):
     response, status_code = getUser(current_user)
     return jsonify(response), status_code
-
-@user_bp.route("/detail", methods=['GET'])
-@token_required
-def getUserDetail(current_user):
-    response, status_code = getDetail(current_user)
-    return jsonify(response), status_code
-
-@user_bp.route("/detail", methods=['PUT', 'PATCH', 'POST'])
-@token_required
-def manageUserDetail(current_user):
-    data = request.get_json()
-    if request.method == 'POST':
-        response, status = createDetail(current_user, data)
-    else: # PUT o PATCH
-        response, status = updateDetail(current_user, data)
-    return jsonify(response), status

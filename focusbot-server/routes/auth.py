@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from services import register_user, login_user, reset_password, verify_email, reenviar_verificacion
-from schemas.auth_schema import LoginSchema, ResetPasswordSchema, VerifyEmailSchema
+from schemas.auth_schema import LoginSchema, ResetPasswordSchema, VerifyEmailSchema, ResendVerificationSchema
 from schemas.user_schema import UserCreate
 from schemas.base import validate_schema
 
@@ -49,19 +49,12 @@ def verify_email_route():
     return jsonify(response), status_code
 
 @auth_bp.route('/resend-verification', methods=['POST'])
-def resend_verification_route():
+@validate_schema(ResendVerificationSchema)
+def resend_verification_route(validated_data: ResendVerificationSchema):
     """
     Reenvía el código de verificación por correo.
     
     Recibe JSON: { "identifier": "email o nickname" }
     """
-    data = request.get_json()
-    if not data:
-        return jsonify({'message': 'Se requiere un cuerpo JSON'}), 400
-
-    identifier = data.get('identifier')
-    if not identifier:
-        return jsonify({'message': 'Debes proporcionar un email o nickname'}), 400
-
-    response, status_code = reenviar_verificacion(identifier)
+    response, status_code = reenviar_verificacion(validated_data.identifier)
     return jsonify(response), status_code
