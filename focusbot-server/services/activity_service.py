@@ -127,6 +127,15 @@ def createActivity(current_user, data):
         return {'message':'Error registrando la actividad', 'error' : str(e)}, 500
 
 def editActivity(current_user, activity_id, data):
+    # Transiciones validas entre estados para asegurar las modificaciones
+    TRANSICIONES_VALIDAS = {
+        ActivityState.PENDIENTE:  [ActivityState.EN_CURSO, ActivityState.POSPUESTO, ActivityState.CANCELADO],
+        ActivityState.POSPUESTO:  [ActivityState.EN_CURSO, ActivityState.CANCELADO],
+        ActivityState.EN_CURSO:   [ActivityState.COMPLETADO, ActivityState.CANCELADO],
+        ActivityState.COMPLETADO: [],   #no hay cambios posibles
+        ActivityState.CANCELADO:  [],   #no hay cambiso posibles
+    }
+
     act = Activity.query.filter(
         Activity.activity_id == activity_id,
         Activity.user_id == current_user.user_id
@@ -134,6 +143,25 @@ def editActivity(current_user, activity_id, data):
 
     if not act:
         return {"error": "Actividad no encontrada o no tienes permiso para editarla"}, 404
+
+    estado = data.get('state') # conseguimos el estado al que queremos cambiar
+    if estado is not None:
+        if estado not in TRANSACCIONES_VALIDAS.get(act.state, []): 
+            # conseguimos los posibles estados futuros para el estado actual de la actividad
+            # si no se encuentra dentro de las posibilidades lanzaremos errro
+            return {
+                "message": ( f"Transición de estado no permitida: no se puede pasar de '{act.state.value}' a '{nuevo_state.value}'" )
+            }, 400
+
+    #En caso de que el estado sea completado debemos tener si o si un resutlado
+    if estado == ActivityState.COMPLETADO and data.get('result') is None:
+        return {
+            "message": "Para completar una actividad es obligatorio indicar un resultado (SUCCESS o FAILED)."
+        }, 400
+
+    #Asignamos automaticamente el resultado de REJECTED cuando toque
+    if (act.state == ActivityState.EN_CURSO and nuevo_state == ActivityState.CANCELADO and data.get('result') is None)
+        data['result'] = ActivityResults.REJECTED
 
     try:
         for field, value in data.items():
@@ -153,8 +181,8 @@ def deleteActivity(current_user, activity_id):
     if not act:
         return {'message': 'Actividad no encontrada o no tienes permisos para eliminarla.'}, 404
     
-    if act.result != None or act.state in [ActivityState.COMPLETADO, ActivityState.EN_CURSO] :
-        return {'message': 'La actividad ya ha sido realizada y no se puede borrar.'} , 400
+    if act.state in [ActivityState.COMPLETADO, ActivityState.EN_CURSO]:
+        return {'message': 'No se pueden eliminar actividades completadas o en curso.'}, 400
     
     try:
         db.session.delete(act)
@@ -172,8 +200,12 @@ def deleteActivity(current_user, activity_id):
 def getTypesUsr(current_user):
     """
     Obtenemos los Tipos de actividad que tiene registrados ese usuario
+    Se excluyen los tipos marcados como [eliminado] mediante borrado logico
     """
-    types = ActivityType.query.filter(ActivityType.user_id == current_user.user_id).all()
+    types = ActivityType.query.filter(
+        ActivityType.user_id == current_user.user_id,
+        ~ActivityType.name_type.contains('[eliminado]') # no o lo contrario de que el nombre contenga eliminado, es una negacion
+    ).all()
 
     if not types:
         return {'types': []}, 200
@@ -196,19 +228,18 @@ def createType(current_user, data):
     Creación de un nuevo Tipo de Actividad
     """
 
-    required_fields = ['name_type', 'work_duration']
-
-    if any(data.get(field) is None for field in required_fields):
-        return {'error': 'Faltan datos obligatorios'}, 400
+    # Impedir crear tipos cuyo nombre contenga la marca de eliminado
+    if '[eliminado]' in data['name_type']:
+        return {'error': 'El nombre del tipo no puede contener la cadena [eliminado]'}, 400
 
     try:
         new_type = ActivityType(
             user_id = current_user.user_id,
-            name_type = to_str(data['name_type'], 50),
-            work_duration = to_int(data['work_duration']),
-            short_break = to_int(data.get('short_break'), 0),
-            long_break = to_int(data.get('long_break'), 0),
-            cycles_before_long = to_int(data.get('cycles_before_long'), 0)
+            name_type = data['name_type'],
+            work_duration = data['work_duration'],
+            short_break = data.get('short_break', 0),
+            long_break = data.get('long_break', 0),
+            cycles_before_long = data.get('cycles_before_long', 0)
         )
 
         db.session.add(new_type)
@@ -224,65 +255,55 @@ def createType(current_user, data):
         return {'message': 'Error creando el tipo de actividad', 'error': str(e)}, 500
 
 def editType(current_user, type_id, data):
-    """
-    Edición de un nuevo tipo de actividad
-    """
     activity_type = ActivityType.query.filter(
         ActivityType.type_id == type_id, 
         ActivityType.user_id == current_user.user_id
     ).first()
 
     if not activity_type:
-        return {"error": "Tipo de actividad no encontrado"}, 404
+        return {"message": "Tipo de actividad no encontrado"}, 404
 
-    validador = {
-        "name_type": lambda v: to_str(v, 50),
-        "work_duration": lambda v: to_int(v),
-        "short_break": lambda v: to_int(v),
-        "long_break": lambda v: to_int(v),
-        "cycles_before_long": lambda v: to_int(v)
-    }
+    # Impedir que se quite/agregue manualmente la marca [eliminado]
+    if '[eliminado]' in (activity_type.name_type or ''):
+        nuevo_nombre = data.get('name_type')
+        if nuevo_nombre is not None and '[eliminado]' not in nuevo_nombre:
+            return {
+                "message": "No se puede reactivar un tipo de actividad eliminado. Elimine la marca [eliminado] del nombre no está permitido."
+            }, 400
+
 
     try:
-        for field, transform in validador.items():
-            if field in data:
-                verificado = transform(data[field])
-                setattr(activity_type, field, verificado)
-        
-        db.session.commit()
+        for field, value in data.items():
+            if value is not None:
+                setattr(activity_type, field, value)
 
-        return {
-            "message": "Tipo de actividad actualizado correctamente."
-        }, 200
+        db.session.commit()
+        return {"message": "Tipo de actividad actualizado correctamente."}, 200
 
     except Exception as e:
         db.session.rollback()
         return {"message": "Error actualizando el tipo de actividad", "error": str(e)}, 500
 
 def deleteType(current_user, type_id):
-    """
-    Eliminación de un tipo de actividad.
-    Si la actividad se trata de una de las por defecto (nombre):
-        - Pomodoro
-        - Hitos
-        - Temporizador
-    Se deberá lanzar un error y no se podrá eliminar ya que son del sistema.
-    De está manera solo se podrán eliinar las propias creadas por el ususario.
-    """
     activity_type = ActivityType.query.filter(
         ActivityType.type_id == type_id, 
         ActivityType.user_id == current_user.user_id
     ).first()
 
     if not activity_type:
-        return {"error": "Tipo de actividad no encontrado"}, 404
+        return {"message": "Tipo de actividad no encontrado"}, 404
 
     system_types = ['Pomodoro', 'Hitos', 'Temporizador']
     if activity_type.name_type in system_types:
-        return {"error": "No se pueden eliminar tipos de actividad del sistema"}, 403
+        return {"message": "No se pueden eliminar tipos de actividad del sistema"}, 403
+
+    # Verificar que no esté ya marcado como eliminado
+    if '[eliminado]' in activity_type.name_type:
+        return {"message": "Este tipo de actividad ya ha sido eliminado"}, 400
 
     try:
-        db.session.delete(activity_type)
+        # Borrado logico: se añade la marca al nombre en lugar de borrar el registro
+        activity_type.name_type = activity_type.name_type + ' [eliminado]'
         db.session.commit()
 
         return {
@@ -291,4 +312,4 @@ def deleteType(current_user, type_id):
 
     except Exception as e:
         db.session.rollback()
-        return {"error": "Error eliminando el tipo de actividad", "details": str(e)}, 500
+        return {"message": "Error eliminando el tipo de actividad", "error": str(e)}, 500

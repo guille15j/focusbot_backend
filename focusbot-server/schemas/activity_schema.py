@@ -41,6 +41,13 @@ class ActivityUpdate(BaseSchema):
     end_date: Optional[datetime] = None
     metadata: Optional[dict] = None
 
+    @model_validator(mode='after') # ejecuta la validación despues de que todos los campos individuales hayan sido validados
+    def validar_resultado_solo_en_completado(self):
+        """Valida que result solo se envíe cuando state es COMPLETADO."""
+        if self.result is not None and self.state != ActivityState.COMPLETADO:
+            raise ValueError('El campo result solo puede enviarse cuando state es COMPLETADO')
+        return self
+
 class ActivityResponse(ActivityBase):
     activity_id: int
     user_id: int
@@ -48,7 +55,6 @@ class ActivityResponse(ActivityBase):
     bot_id: int
     state: ActivityState
     result: Optional[ActivityResults]
-<<<<<<< HEAD
 
 class ActivityTypeUpdate(BaseSchema):
     name_type: Optional[str] = Field(None, max_length=50)
@@ -56,6 +62,3 @@ class ActivityTypeUpdate(BaseSchema):
     short_break: Optional[int] = Field(None, ge=0)
     long_break: Optional[int] = Field(None, ge=0)
     cycles_before_long: Optional[int] = Field(None, ge=0)
-=======
-    metadata: Optional[dict] = None
->>>>>>> 04cb8f904ed6f2859472f798ef60891ba661fee7
