@@ -1,4 +1,5 @@
 from services.db_service import db, User, Activity, Bot, ActivityType, ActivityCategory, ActivityState, ActivityResults
+from services.mqtt_service import publicar_comando
 from utils import *
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
@@ -131,9 +132,10 @@ def editActivity(current_user, activity_id, data):
     TRANSICIONES_VALIDAS = {
         ActivityState.PENDIENTE:  [ActivityState.EN_CURSO, ActivityState.POSPUESTO, ActivityState.CANCELADO],
         ActivityState.POSPUESTO:  [ActivityState.EN_CURSO, ActivityState.CANCELADO],
-        ActivityState.EN_CURSO:   [ActivityState.COMPLETADO, ActivityState.CANCELADO],
-        ActivityState.COMPLETADO: [],   #no hay cambios posibles
-        ActivityState.CANCELADO:  [],   #no hay cambiso posibles
+        ActivityState.EN_CURSO:   [ActivityState.COMPLETADO, ActivityState.CANCELADO, ActivityState.PAUSADO],
+        ActivityState.PAUSADO:    [ActivityState.EN_CURSO, ActivityState.CANCELADO],
+        ActivityState.COMPLETADO: [],
+        ActivityState.CANCELADO:  [],
     }
 
     act = Activity.query.filter(
@@ -160,7 +162,10 @@ def editActivity(current_user, activity_id, data):
         }, 400
 
     #Asignamos automaticamente el resultado de REJECTED cuando toque
-    if (act.state == ActivityState.EN_CURSO and nuevo_state == ActivityState.CANCELADO and data.get('result') is None)
+    estado_previo = act.state
+    if (estado_previo in [ActivityState.EN_CURSO, ActivityState.PAUSADO] and 
+        estado == ActivityState.CANCELADO and 
+        data.get('result') is None):
         data['result'] = ActivityResults.REJECTED
 
     try:
@@ -169,6 +174,25 @@ def editActivity(current_user, activity_id, data):
                 setattr(act, field, value)
 
         db.session.commit()
+        
+        #Enviamos el comando una vez que se actuliza el estado (mac + coamndo)
+        
+        # validamos si se trata de un cambio de estado lo primero
+        # si no se trata de un cambio d eestado ni lo trato paso al retrun
+        if estado is not None:
+            # SI se trata de un cambio de estado valido que sea un cambio a:
+            # CANCELADO, EN_CURSO, PAUSADO
+            # Si es un cambio a POSPUESTO -> no afecta al bot no hay comando
+            # Si es un cambio a COMPLETADO -> se ejecuta en el bot no en la app por el usuario
+            # Nunca puede volver a PENDIENTE por lo que no hay comando
+            if estado in [ActivityState.EN_CURSO, ActivityState.PAUSADO,  ActivityState.CANCELADO]:
+                comando = construirComando(act, estado, estado_previo)
+                #enviamos comando al servicio de m1qtt
+                if comando:
+                    bot = Bot.query.get(act.bot_id)
+                    if bot and bot.mac_address:
+                        publicar_comando(bot.mac_address, comando)
+
         return {"message": "Actividad actualizada correctamente."}, 200
 
     except Exception as e:
@@ -181,8 +205,8 @@ def deleteActivity(current_user, activity_id):
     if not act:
         return {'message': 'Actividad no encontrada o no tienes permisos para eliminarla.'}, 404
     
-    if act.state in [ActivityState.COMPLETADO, ActivityState.EN_CURSO]:
-        return {'message': 'No se pueden eliminar actividades completadas o en curso.'}, 400
+    if act.state in [ActivityState.COMPLETADO, ActivityState.EN_CURSO, ActivityState.PAUSADO]:
+        return {'message': 'No se pueden eliminar actividades completadas, en curso o pausadas.'}, 400
     
     try:
         db.session.delete(act)
@@ -313,3 +337,50 @@ def deleteType(current_user, type_id):
     except Exception as e:
         db.session.rollback()
         return {"message": "Error eliminando el tipo de actividad", "error": str(e)}, 500
+
+def construirComando(activity, estado, estado_previo):
+    """
+    Construye el payload MQTT correspondiente a la transición de estado.
+    La actividad ya tiene los cambios aplicados en el objeto Python.
+    """
+    comando = {}
+    match estado:
+        case ActivityState.EN_CURSO:
+            if estado_previo == ActivityState.PAUSADO:
+                # Reanudar actividad pausada
+                comando = {
+                    "accion": "REANUDAR_ACTIVIDAD",
+                    "activity_id": activity.activity_id
+                }
+            else:
+                # Iniciar actividad desde PENDIENTE o POSPUESTO
+                tipo = ActivityType.query.get(activity.type_id)
+                parametros = {
+                    "work_duration": tipo.work_duration,
+                    "short_break": tipo.short_break,
+                    "long_break": tipo.long_break,
+                    "cycles_before_long": tipo.cycles_before_long
+                }
+                comando = {
+                    "accion": "INICIAR_ACTIVIDAD",
+                    "activity_id": activity.activity_id,
+                    "tipo": tipo.name_type,
+                    "parametros": parametros,
+                    "metadata": activity.metadata or {}
+                }
+
+        case ActivityState.PAUSADO:
+            # Pausar la actividad en curso
+            comando = {
+                "accion": "PAUSAR_ACTIVIDAD",
+                "activity_id": activity.activity_id
+            }
+
+        case ActivityState.CANCELADO:
+            # Cancelar la actividad en curso o pausada
+            comando = {
+                "accion": "FINALIZAR_ACTIVIDAD",
+                "activity_id": activity.activity_id
+            }
+
+    return comando

@@ -150,3 +150,17 @@ def asegurar_conexion():
         except:
             return False
     return True
+
+def publicar_comando(mac, comando):
+    """
+    Publica un comando MQTT en el topic del bot correspondiente.
+    
+    Args:
+        mac: dirección MAC del bot de destino.
+        payload: diccionario con el contenido del comando a enviar.
+    """
+    topic = f"focusapp/{mac}/command"
+    try:
+        mqtt_client.publish(topic, json.dumps(comando), qos=0)
+    except Exception as e:
+        print(f"[MQTT] Error publicando comando en {topic}: {e}")

@@ -17,6 +17,7 @@ class ActivityState(enum.Enum):
     COMPLETADO = 'COMPLETADO'
     CANCELADO = 'CANCELADO'
     EN_CURSO = 'EN_CURSO' 
+    PAUSADO = 'PAUSADO'  
 
 class ActivityCategory (enum.Enum):
     ESTUDIOS = 'ESTUDIOS'
