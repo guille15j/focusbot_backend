@@ -34,19 +34,8 @@ def getBotsByUser(current_user):
         return {'error':f'Error enla carga de bots del usuario - {e}'}, 500
 
 def link_bot(data, user_id):
-
-    required_fields = [ 'mac_address', 'custom_name']
-    if any(data.get(field) is None for field in required_fields):
-        return {'error': 'Faltan datos obligatorios para linkar un BOT'}, 400
-
-    mac = data.get('mac_address')
-    name = data.get('custom_name')
-
-    if not mac:
-        return {'error': 'La dirección MAC es obligatoria'}, 400
-    
-    if not name:
-        return {'error': 'El nombre es obligatoria'}, 400
+    mac = data['mac_address']
+    name = data['custom_name']
 
     bot = Bot.query.filter_by(mac_address=mac).first()
 
@@ -64,7 +53,6 @@ def link_bot(data, user_id):
         #EL bot no se ha encontrado en el sistema asique lo crearemos
         generated_key = secrets.token_hex(16) #contraseña única y aleatoria de 32 caracteres (hexadecimal de 16 bytes)
         # Cuando el robot se conecta por primera vez, la API se la entrega. A partir de ese momento, el robot la usará para identificarse ante el Broker MQTT
-
         
         bot = Bot(
             mac_address=mac,
@@ -108,35 +96,28 @@ def getBotById(current_user, bot_id):
                 }, 201
 
 def editBot(current_user, bot_id, data):
-    
-    bot = Bot.query.filter(Bot.bot_id == bot_id , Bot.user_id == current_user.user_id ).first()
+    bot = Bot.query.filter(
+        Bot.bot_id == bot_id,
+        Bot.user_id == current_user.user_id
+    ).first()
 
     if not bot:
-        return {"message" : "Bot no encontrado en el sistema"}, 404
-    
-    validator = {
-        'user_id' : lambda v : to_int(v) ,
-        'custom_name' : lambda v : to_str(v , 50),
-        'last_sync' : lambda v : to_datetime(v),
-        'status' : lambda v : to_enum(v, BotStatus, default= BotStatus.OFFLINE)
-    }
+        return {"message": "Bot no encontrado en el sistema"}, 404
 
     if not data:
-        return {"message":"No hay datos a actualizar."}, 500
-    
-    try:
-        for field, transform in validator.items():
-            if field in data:
-                verificado = transform(data[field])
-                setattr(bot, field, verificado)
-        
-        db.session.commit()
+        return {"message": "No hay datos que actualizar"}, 200
 
-        return {"message" : "Bot actualizado con exito."} , 200
-    
+    try:
+        for field, value in data.items():
+            if value is not None:
+                setattr(bot, field, value)
+
+        db.session.commit()
+        return {"message": "Bot actualizado con exito."}, 200
+
     except Exception as e:
         db.session.rollback()
-        return {"message":"Error editando el bot.", "error":str(e)}, 500
+        return {"message": "Error editando el bot.", "error": str(e)}, 500
 
 def deleteBot(current_user, bot_id):
 
