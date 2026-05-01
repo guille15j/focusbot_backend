@@ -1,6 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import enum
+from sqlalchemy.dialects.postgresql import JSON
 
 db = SQLAlchemy()
 
@@ -109,6 +110,8 @@ class Activity(db.Model):
     category = db.Column(db.Enum(ActivityCategory), nullable=False, default=ActivityCategory.OTRAS)
 
     result = db.Column(db.Enum(ActivityResults), nullable=True)
+
+    metadata = db.Column(JSON, nullable = True, default = {})
 
 class ActivityType(db.Model):
     __tablename__ = "activity_types"
