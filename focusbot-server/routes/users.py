@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from services import updateUserPatch, getUser, getDetail, createDetail, updateDetail
+from services import updateUserPatch, getUser
 from utils import token_required
 from schemas.user_schema import UserBase # Usamos UserBase para actualizaciones parciales
 from schemas.base import validate_schema

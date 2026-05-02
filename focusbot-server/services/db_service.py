@@ -112,7 +112,7 @@ class Activity(db.Model):
 
     result = db.Column(db.Enum(ActivityResults), nullable=True)
 
-    metadata = db.Column(JSON, nullable = True, default = {})
+    extra_data = db.Column(JSON, nullable = True, default = {})
 
 class ActivityType(db.Model):
     __tablename__ = "activity_types"

@@ -112,7 +112,7 @@ def createActivity(current_user, data):
             state = ActivityState.PENDIENTE,
             category = category,
             result = None ,
-            metadata = data.get('metadata', {})          
+            extra_data = data.get('extra_data', {})          
         )
 
         db.session.add(act)
@@ -366,7 +366,7 @@ def construirComando(activity, estado, estado_previo):
                     "activity_id": activity.activity_id,
                     "tipo": tipo.name_type,
                     "parametros": parametros,
-                    "metadata": activity.metadata or {}
+                    "extra_data": activity.extra_data or {}
                 }
 
         case ActivityState.PAUSADO:

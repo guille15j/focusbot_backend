@@ -1,4 +1,4 @@
-from pydantic import Field
+from pydantic import Field, model_validator
 from typing import Optional
 from datetime import datetime
 from schemas.base import BaseSchema
@@ -23,7 +23,7 @@ class ActivityBase(BaseSchema):
     category: ActivityCategory = ActivityCategory.OTRAS
     init_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
-    metadata: Optional[dict] = None
+    extra_data: Optional[dict] = None
 
 class ActivityCreate(ActivityBase):
     type_id: int
@@ -39,7 +39,7 @@ class ActivityUpdate(BaseSchema):
     result: Optional[ActivityResults] = None
     init_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
-    metadata: Optional[dict] = None
+    extra_data: Optional[dict] = None
 
     @model_validator(mode='after') # ejecuta la validación despues de que todos los campos individuales hayan sido validados
     def validar_resultado_solo_en_completado(self):
