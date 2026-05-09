@@ -19,7 +19,6 @@ class ActivityTypeResponse(ActivityTypeBase):
 # --- ACTIVITIES ---
 class ActivityBase(BaseSchema):
     title: str = Field(..., max_length=100)
-    description: Optional[str] = Field(None, max_length=250)
     category: ActivityCategory = ActivityCategory.OTRAS
     init_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
@@ -33,7 +32,6 @@ class ActivityUpdate(BaseSchema):
     type_id: Optional[int] = None
     bot_id: Optional[int] = None
     title: Optional[str] = None
-    description: Optional[str] = None
     state: Optional[ActivityState] = None
     category: Optional[ActivityCategory] = None
     result: Optional[ActivityResults] = None

@@ -4,35 +4,67 @@ from utils import *
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 
+from flask import jsonify
 
-def getActivitiesUsr (current_user):
-
-    activities = Activity.query.filter(Activity.user_id == current_user.user_id).all()
-
-    if not activities:
-        return {'activities':[]}, 200
+def getActivitiesUsr(current_user):
+    print('Iniciando recoleccion de actividades')
     
-    lista_act = []
-    for a in activities:
-        lista_act.append(
-            {
-                "activity_id": a.activity_id,
-                "type_id": a.type_id,
-                "user_id": a.user_id,
-                "bot_id": a.bot_id,
+    try:
+        # 1. Obtener todas las actividades del usuario
+        activities = Activity.query.filter_by(user_id=current_user.user_id).all()
+        print(f' - Devolviendo {len(activities)} actividades')
+        result = []
 
-                "title": a.title,
-                "description": a.description,
+        for act in activities:
 
-                "init_date": a.init_date.isoformat() if a.init_date else None,
-                "end_date": a.end_date.isoformat() if a.end_date else None,
+            # 2. Búsqueda del Tipo asociado
+            tipo = ActivityType.query.get(act.type_id)
+            
+            # 3. Búsqueda del Bot asociado
+            bot = Bot.query.get(act.bot_id)
 
-                "state": a.state.value, #Envia el valor unico del ENUM
-                "category": a.category.value,
-                "result": a.result.value if a.result else None
+            # 4. Construcción del objeto de respuesta con serialización manual
+            act_dict = {
+                'activity_id': act.activity_id,
+                'title': act.title,
+                # Serialización de Enums de la Actividad (.value)
+                'state': act.state.value if hasattr(act.state, 'value') else str(act.state),
+                'category': act.category.value if hasattr(act.category, 'value') else str(act.category),
+                'init_date': act.init_date.isoformat() if act.init_date else None,
+                'end_date': act.end_date.isoformat() if act.end_date else None,
+                'extra_data': act.extra_data or {},
+                
+                # Objeto del Tipo (ActivityType)
+                'type': {
+                    'type_id': tipo.type_id,
+                    'name_type': tipo.name_type,
+                    'work_duration': tipo.work_duration,
+                    'short_break': tipo.short_break,
+                    'long_break': tipo.long_break,
+                    'cycles_before_long': tipo.cycles_before_long
+                } if tipo else None,
+
+                # Objeto del Bot (corrigiendo el error de BotStatus)
+                'bot': {
+                    'bot_id': bot.bot_id,
+                    'name': bot.custom_name,
+                    # Aquí es donde fallaba: convertimos el Enum del Bot a String/Value
+                    'status': bot.status.value if hasattr(bot.status, 'value') else str(bot.status)
+                } if bot else None
             }
-        )
-    return {'activities' : lista_act} , 200
+            result.append(act_dict)
+            print(f' - Iteracion numero {len(result)}')
+        
+        # Retornamos la lista directamente (el router se encarga del jsonify)
+        return result, 200
+
+    except Exception as e:
+        # Imprime el error exacto en la consola de Flask para debug
+        print(f"❌ ERROR EN getActivitiesUsr: {str(e)}")
+        return {
+            'message': 'Error al obtener las actividades',
+            'error': str(e)
+        }, 500
 
 def getActivity(current_user, activity_id):
     activity = Activity.query.filter(
@@ -56,7 +88,6 @@ def getActivity(current_user, activity_id):
     act_final = {
         "activity_id": activity.activity_id,
         "title": activity.title,
-        "description": activity.description,
         "init_date": activity.init_date.isoformat() if activity.init_date else None,
         "end_date": activity.end_date.isoformat() if activity.end_date else None,
         "state": activity.state.value,
@@ -106,7 +137,6 @@ def createActivity(current_user, data):
             user_id = current_user.user_id,
             bot_id = botId,
             title = title,
-            description = data.get('description'),
             init_date = init_date,
             end_date = end_date,
             state = ActivityState.PENDIENTE,

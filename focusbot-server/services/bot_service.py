@@ -60,7 +60,7 @@ def link_bot(data, user_id):
             custom_name=name,
             # pass_key=generated_key,
             # access_point_ssid=f"FocusBot_{mac.replace(':', '')[-4:]}", #Red que crea la ESP para que podamos conectarnos a ellos y ajustar la ssiud de nuestra wifi
-            status=BotStatus.IDLE
+            status=BotStatus.OFFLINE
         )
         db.session.add(bot)
 

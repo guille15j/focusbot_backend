@@ -100,7 +100,6 @@ class Activity(db.Model):
     bot_id = db.Column(db.Integer, db.ForeignKey('bots.bot_id'), nullable=False)
 
     title = db.Column(db.String(100), nullable=False)
-    description = db.Column(db.String(250))
     
     # duration_minutes = db.Column(db.Integer, nullable=False)
     
@@ -118,7 +117,7 @@ class ActivityType(db.Model):
     __tablename__ = "activity_types"
 
     type_id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)  # ← AÑADIR ESTO
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
     name_type = db.Column(db.String(50), nullable=False)
     work_duration = db.Column(db.Integer, nullable=False)
     short_break = db.Column(db.Integer, default=0)
@@ -130,7 +129,6 @@ class ActivityType(db.Model):
         db.CheckConstraint('short_break >= 0', name='check_short_break_positive'),
         db.CheckConstraint('long_break >= 0', name='check_long_break_positive'),
         db.CheckConstraint('cycles_before_long >= 0', name='check_cycles_before_long_positive'),
-        db.UniqueConstraint('user_id', 'name_type', name='uq_user_activity_type_name'),
     )
 
 class Bot(db.Model):

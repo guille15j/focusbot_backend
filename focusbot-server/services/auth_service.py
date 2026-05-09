@@ -105,11 +105,20 @@ def login_user(data):
     token = generate_token(user.user_id)
     
     return {
-        'message': 'Inicio de sesion completado',
-        'token':token,
-        'user': {
-            'user_id': user.user_id,
-            'nickname': user.nickname
+        "message": "Login exitoso",
+        "token": token,
+        "user": {
+            "user_id": user.user_id,
+            "nickname": user.nickname,
+            "first_name": user.first_name, # Añade estos
+            "last_name": user.last_name,   # campos para que
+            "email": user.email,           # la App los reciba ya
+            "birth_date": str(user.birth_date), # formateados
+            "profile_img": user.profile_img, # <--- El string Base64 largo
+            "timezone": user.timezone or "UTC",
+            "name_detail": user.name_detail,
+            "description_detail": user.description_detail,
+            "severity": user.severity.value if hasattr(user.severity, 'value') else user.severity
         }
     }, 200 
 
@@ -153,10 +162,19 @@ def verify_email(email, codigo):
 
         return {
             'message': 'Correo verificado correctamente.',
-            'token': token,
-            'user': {
-                'user_id': user.user_id,
-                'nickname': user.nickname
+            "token": token,
+            "user": {
+                "user_id": user.user_id,
+                "nickname": user.nickname,
+                "first_name": user.first_name, # Añade estos
+                "last_name": user.last_name,   # campos para que
+                "email": user.email,           # la App los reciba ya
+                "birth_date": str(user.birth_date), # formateados
+                "profile_img": user.profile_img, # <--- El string Base64 largo
+                "timezone": user.timezone or "UTC",
+                "name_detail": user.name_detail,
+                "description_detail": user.description_detail,
+                "severity": user.severity.value if hasattr(user.severity, 'value') else user.severity
             }
         }, 200
 
