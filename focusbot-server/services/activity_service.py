@@ -279,21 +279,40 @@ def getTypesUsr(current_user):
 
 def createType(current_user, data):
     """
-    Creación de un nuevo Tipo de Actividad
+    Crea un nuevo Tipo de Actividad.
+    Si ya existe un tipo con los mismos parámetros para el usuario, reutiliza ese.
     """
-
-    # Impedir crear tipos cuyo nombre contenga la marca de eliminado
-    if '[eliminado]' in data['name_type']:
-        return {'error': 'El nombre del tipo no puede contener la cadena [eliminado]'}, 400
-
     try:
+        name = data['name_type']
+        work = data['work_duration']
+        short = data.get('short_break', 0)
+        long_ = data.get('long_break', 0)
+        cycles = data.get('cycles_before_long', 0)
+
+        # Buscar si ya existe un tipo idéntico
+        existing = ActivityType.query.filter_by(
+            user_id=current_user.user_id,
+            name_type=name,
+            work_duration=work,
+            short_break=short,
+            long_break=long_,
+            cycles_before_long=cycles
+        ).first()
+
+        if existing:
+            return {
+                'message': 'Ya existe un tipo de actividad con estos parámetros',
+                'id': existing.type_id
+            }, 200
+
+        # Si no existe, crear uno nuevo
         new_type = ActivityType(
-            user_id = current_user.user_id,
-            name_type = data['name_type'],
-            work_duration = data['work_duration'],
-            short_break = data.get('short_break', 0),
-            long_break = data.get('long_break', 0),
-            cycles_before_long = data.get('cycles_before_long', 0)
+            user_id=current_user.user_id,
+            name_type=name,
+            work_duration=work,
+            short_break=short,
+            long_break=long_,
+            cycles_before_long=cycles
         )
 
         db.session.add(new_type)
