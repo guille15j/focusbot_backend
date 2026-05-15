@@ -162,5 +162,6 @@ def publicar_comando(mac, comando):
     topic = f"focusapp/{mac}/command"
     try:
         mqtt_client.publish(topic, json.dumps(comando), qos=0)
+        print(f'[MQTT] Comando publicado: {comando}')
     except Exception as e:
         print(f"[MQTT] Error publicando comando en {topic}: {e}")

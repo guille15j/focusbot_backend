@@ -48,8 +48,10 @@ def getActivitiesUsr(current_user):
                 'bot': {
                     'bot_id': bot.bot_id,
                     'name': bot.custom_name,
+                    'mac':bot.mac_address,
                     # Aquí es donde fallaba: convertimos el Enum del Bot a String/Value
-                    'status': bot.status.value if hasattr(bot.status, 'value') else str(bot.status)
+                    'status': bot.status.value if hasattr(bot.status, 'value') else str(bot.status),
+                    'last_sync': bot.last_sync
                 } if bot else None
             }
             result.append(act_dict)
@@ -158,7 +160,6 @@ def createActivity(current_user, data):
         return {'message':'Error registrando la actividad', 'error' : str(e)}, 500
 
 def editActivity(current_user, activity_id, data):
-    # Transiciones validas entre estados para asegurar las modificaciones
     TRANSICIONES_VALIDAS = {
         ActivityState.PENDIENTE:  [ActivityState.EN_CURSO, ActivityState.POSPUESTO, ActivityState.CANCELADO],
         ActivityState.POSPUESTO:  [ActivityState.EN_CURSO, ActivityState.CANCELADO],
@@ -176,13 +177,15 @@ def editActivity(current_user, activity_id, data):
     if not act:
         return {"error": "Actividad no encontrada o no tienes permiso para editarla"}, 404
 
-    estado = data.get('state') # conseguimos el estado al que queremos cambiar
+    estado = data.get('state')
     if estado is not None:
-        if estado not in TRANSACCIONES_VALIDAS.get(act.state, []): 
-            # conseguimos los posibles estados futuros para el estado actual de la actividad
-            # si no se encuentra dentro de las posibilidades lanzaremos errro
+        # Convertir string a enum si es necesario
+        if isinstance(estado, str):
+            estado = to_enum(estado, ActivityState)
+        
+        if estado not in TRANSICIONES_VALIDAS.get(act.state, []):
             return {
-                "message": ( f"Transición de estado no permitida: no se puede pasar de '{act.state.value}' a '{nuevo_state.value}'" )
+                "message": f"Transición de estado no permitida: no se puede pasar de '{act.state.value}' a '{str(estado)}'"
             }, 400
 
     #En caso de que el estado sea completado debemos tener si o si un resutlado
@@ -198,8 +201,13 @@ def editActivity(current_user, activity_id, data):
         data.get('result') is None):
         data['result'] = ActivityResults.REJECTED
 
+    # Asignar fecha de inicio automáticamente al iniciar la actividad por primera vez
+    if estado == ActivityState.EN_CURSO and act.init_date is None:
+        data['init_date'] = datetime.utcnow()
+
     try:
         for field, value in data.items():
+
             if value is not None:
                 setattr(act, field, value)
 
