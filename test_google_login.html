@@ -63,6 +63,8 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     
     <script>
+        // Forzar el origen a localhost (solo para pruebas locales)
+Object.defineProperty(document, 'referrer', {get: function(){return 'http://localhost:3000';}});
         // Sustituye esto por tu GOOGLE_CLIENT_ID real
         const GOOGLE_CLIENT_ID = '767551510601-m46aklgg3tsrhr64viqd9pcpi8rbr4bb.apps.googleusercontent.com';
         

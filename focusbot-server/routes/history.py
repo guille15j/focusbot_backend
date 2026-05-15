@@ -30,6 +30,5 @@ def get_Record_by_ID(current_user, record_id):
 @history_bp.route('/', methods=['GET'])
 @token_required
 def get_records(current_user):
-    # Corregido el typo de getAllRecods -> getAllRecords
     records, status = getAllRecords(current_user)
     return jsonify(records), status

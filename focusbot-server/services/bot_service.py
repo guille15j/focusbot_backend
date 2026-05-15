@@ -39,40 +39,39 @@ def link_bot(data, user_id):
 
     bot = Bot.query.filter_by(mac_address=mac).first()
 
-    # Una vez obtenido el bot vamos a ver si tenemos ese bot registrado con un usuario o si esta libre
-    # Enc aso de que este lirbe podremos asignarlo enc aso de que no lo esté protegeremos y blindaremos el bot
     if bot:
         if bot.user_id is not None:
-            #En caso de que el parametro de user_id de neustro bot no sea none lo que significa que este bot SI tiene dueño
             return {'error': f'Este FocusBot con nombre {bot.custom_name} ya pertenece a otro usuario'}, 403
         
-        # En este caso no estará asociado a ningun usuairo y podremos asociarlo al usuario que tenemos logueado
         bot.user_id = user_id
         bot.custom_name = name
     else:
-        #EL bot no se ha encontrado en el sistema asique lo crearemos
-        generated_key = secrets.token_hex(16) #contraseña única y aleatoria de 32 caracteres (hexadecimal de 16 bytes)
-        # Cuando el robot se conecta por primera vez, la API se la entrega. A partir de ese momento, el robot la usará para identificarse ante el Broker MQTT
+        generated_key = secrets.token_hex(16)
         
         bot = Bot(
             mac_address=mac,
             user_id=user_id,
             custom_name=name,
-            # pass_key=generated_key,
-            # access_point_ssid=f"FocusBot_{mac.replace(':', '')[-4:]}", #Red que crea la ESP para que podamos conectarnos a ellos y ajustar la ssiud de nuestra wifi
             status=BotStatus.OFFLINE
         )
         db.session.add(bot)
 
     try:
         db.session.commit()
+        
+        # Suscribirse a los topics MQTT del bot recién vinculado
+        try:
+            from services.mqtt_service import mqtt_client
+            mqtt_client.subscribe(f"focusapp/{mac}/status", qos=0)
+            mqtt_client.subscribe(f"focusapp/{mac}/result", qos=0)
+        except Exception:
+            pass
+
         return {
             'message': 'FocusBot vinculado con éxito',
             'bot': {
                 'id': bot.bot_id,
                 'name': bot.custom_name,
-                # 'pass_key': bot.pass_key,
-                # 'ssid': bot.access_point_ssid
             }
         }, 201
 
@@ -120,18 +119,27 @@ def editBot(current_user, bot_id, data):
         return {"message": "Error editando el bot.", "error": str(e)}, 500
 
 def deleteBot(current_user, bot_id):
-
-    bot  = Bot.query.filter(Bot.user_id == current_user.user_id, Bot.bot_id == bot_id).first()
+    bot = Bot.query.filter(Bot.user_id == current_user.user_id, Bot.bot_id == bot_id).first()
 
     if not bot:
-        return {"message" : "Bot no encontrado en el sistema"}, 404
-    try:
+        return {"message": "Bot no encontrado en el sistema"}, 404
 
-        db.session.delete(bot)
+    try:
+        # Borrado lógico: desvincular el bot del usuario
+        bot.user_id = None
         db.session.commit()
 
-        return {"message" : "Bot borrado con exito"}, 200
+        # Desuscribirse de los topics MQTT relacionados con este bot
+        try:
+            from services.mqtt_service import mqtt_client
+            mac = bot.mac_address
+            mqtt_client.unsubscribe(f"focusapp/{mac}/status")
+            mqtt_client.unsubscribe(f"focusapp/{mac}/result")
+        except Exception:
+            pass  # Si falla la desuscripción, no afecta al borrado lógico
+
+        return {"message": "Bot desvinculado con éxito"}, 200
 
     except Exception as e:
         db.session.rollback()
-        return {"message" : "Error al borrar el Bot del sistema.", "error" : str(e)}, 500
+        return {"message": "Error al desvincular el Bot del sistema.", "error": str(e)}, 500
