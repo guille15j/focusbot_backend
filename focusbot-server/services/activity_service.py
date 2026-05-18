@@ -1,18 +1,18 @@
-from services.db_service import db, User, Activity, Bot, ActivityType, ActivityCategory, ActivityState, ActivityResults
+from services.db_service import db, User, Activity, Bot, ActivityType, ActivityCategory, ActivityState, ActivityResults, BotStatus
 from services.mqtt_service import publicar_comando
 from utils import *
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
+from datetime import timezone, timedelta, datetime
 
 from flask import jsonify
 
 def getActivitiesUsr(current_user):
-    print('Iniciando recoleccion de actividades')
+    print('Iniciando recoleccion de actividades', flush=True)
     
     try:
         # 1. Obtener todas las actividades del usuario
         activities = Activity.query.filter_by(user_id=current_user.user_id).all()
-        print(f' - Devolviendo {len(activities)} actividades')
+        print(f' - Devolviendo {len(activities)} actividades', flush=True)
         result = []
 
         for act in activities:
@@ -55,14 +55,14 @@ def getActivitiesUsr(current_user):
                 } if bot else None
             }
             result.append(act_dict)
-            print(f' - Iteracion numero {len(result)}')
+            print(f' - Iteracion numero {len(result)}', flush=True)
         
         # Retornamos la lista directamente (el router se encarga del jsonify)
         return result, 200
 
     except Exception as e:
         # Imprime el error exacto en la consola de Flask para debug
-        print(f"❌ ERROR EN getActivitiesUsr: {str(e)}")
+        print(f"ERROR EN getActivitiesUsr: {str(e)}", flush=True)
         return {
             'message': 'Error al obtener las actividades',
             'error': str(e)
@@ -179,7 +179,6 @@ def editActivity(current_user, activity_id, data):
 
     estado = data.get('state')
     if estado is not None:
-        # Convertir string a enum si es necesario
         if isinstance(estado, str):
             estado = to_enum(estado, ActivityState)
         
@@ -188,54 +187,72 @@ def editActivity(current_user, activity_id, data):
                 "message": f"Transición de estado no permitida: no se puede pasar de '{act.state.value}' a '{str(estado)}'"
             }, 400
 
-    #En caso de que el estado sea completado debemos tener si o si un resutlado
     if estado == ActivityState.COMPLETADO and data.get('result') is None:
         return {
             "message": "Para completar una actividad es obligatorio indicar un resultado (SUCCESS o FAILED)."
         }, 400
 
-    #Asignamos automaticamente el resultado de REJECTED cuando toque
     estado_previo = act.state
     if (estado_previo in [ActivityState.EN_CURSO, ActivityState.PAUSADO] and 
         estado == ActivityState.CANCELADO and 
         data.get('result') is None):
         data['result'] = ActivityResults.REJECTED
 
-    # Asignar fecha de inicio automáticamente al iniciar la actividad por primera vez
+    # Obtener la zona horaria del usuario
+    tz = None
+    tz_str = (current_user.timezone or 'UTC').strip().upper()
+    if tz_str.startswith('UTC'):
+        offset_str = tz_str[3:]  # ej: "+2", "-5", "+0", ""
+        try:
+            offset_hours = int(offset_str) if offset_str else 0
+            tz = timezone(timedelta(hours=offset_hours))
+        except ValueError:
+            tz = None
+
+    # Asignar fechas con la zona horaria del usuario
     if estado == ActivityState.EN_CURSO and act.init_date is None:
-        data['init_date'] = datetime.utcnow()
+        data['init_date'] = datetime.now(tz=tz).replace(tzinfo=None)
+
+    if estado in [ActivityState.COMPLETADO, ActivityState.CANCELADO] and act.end_date is None:
+        data['end_date'] = datetime.now(tz=tz).replace(tzinfo=None)
 
     try:
         for field, value in data.items():
-
             if value is not None:
                 setattr(act, field, value)
 
-        db.session.commit()
         
-        #Enviamos el comando una vez que se actuliza el estado (mac + coamndo)
-        
-        # validamos si se trata de un cambio de estado lo primero
-        # si no se trata de un cambio d eestado ni lo trato paso al retrun
+        # --- ENVÍO DE COMANDO MQTT ---
         if estado is not None:
-            # SI se trata de un cambio de estado valido que sea un cambio a:
-            # CANCELADO, EN_CURSO, PAUSADO
-            # Si es un cambio a POSPUESTO -> no afecta al bot no hay comando
-            # Si es un cambio a COMPLETADO -> se ejecuta en el bot no en la app por el usuario
-            # Nunca puede volver a PENDIENTE por lo que no hay comando
-            if estado in [ActivityState.EN_CURSO, ActivityState.PAUSADO,  ActivityState.CANCELADO]:
+            print(f"[DEBUG-EDIT] Estado solicitado: {estado}, Estado previo: {estado_previo}",flush=True)
+            print(f"[DEBUG-EDIT] ¿Enviará comando? {estado in [ActivityState.EN_CURSO, ActivityState.PAUSADO, ActivityState.CANCELADO]}",flush=True)
+            
+            if estado in [ActivityState.EN_CURSO, ActivityState.PAUSADO, ActivityState.CANCELADO]:
                 comando = construirComando(act, estado, estado_previo)
-                #enviamos comando al servicio de m1qtt
+                print(f"[DEBUG-EDIT] Comando construido: {comando}",flush=True)
+                
                 if comando:
                     bot = Bot.query.get(act.bot_id)
                     if bot and bot.mac_address:
+                        # inicio_espera = datetime.utcnow()
+                        # while not mqtt_client.is_connected():
+                        #     if (datetime.utcnow() - inicio_espera).total_seconds() > 5:
+                        #         print("[MQTT] Timeout esperando conexión al broker.", flush=True)
+                        #         break
+                        #     time.sleep(0.5)
+                        
+                        print("[MQTT] Publicando el comando...", flush=True)
                         publicar_comando(bot.mac_address, comando)
+                        print("[MQTT] Comando publicado", flush=True)
+
+        
+        db.session.commit()
 
         return {"message": "Actividad actualizada correctamente."}, 200
 
     except Exception as e:
         db.session.rollback()
-        return {"error": "Error actualizando la actividad", "details": str(e)}, 500
+        return {"error": f"Error actualizando la actividad - {str(e)}", "details": str(e)}, 500
 
 def deleteActivity(current_user, activity_id):
     act = Activity.query.filter(Activity.activity_id == activity_id, Activity.user_id == current_user.user_id).first()
@@ -421,6 +438,7 @@ def construirComando(activity, estado, estado_previo):
                 comando = {
                     "accion": "INICIAR_ACTIVIDAD",
                     "activity_id": activity.activity_id,
+                    "title": activity.title, 
                     "tipo": tipo.name_type,
                     "parametros": parametros,
                     "extra_data": activity.extra_data or {}

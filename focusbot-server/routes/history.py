@@ -21,6 +21,12 @@ def calculate_history( validated_data, current_user):
     })
     return jsonify(response), status
 
+@history_bp.route('/weekly-dashboard', methods=['GET'])
+@token_required
+def get_weekly_dashboard(current_user):
+    response, status = getWeeklyDashboard(current_user)
+    return jsonify(response), status
+
 @history_bp.route('/<int:record_id>', methods=['GET'])
 @token_required
 def get_Record_by_ID(current_user, record_id):

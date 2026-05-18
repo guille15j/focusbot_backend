@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from services.db_service import db
 from config import Config
@@ -8,6 +8,20 @@ from services import *
 def create_app():
     app = Flask(__name__) 
     CORS(app, resources={r"/*": {"origins": "*"}})
+
+    @app.before_request
+    def check_api_key():
+        # Si quieres excluir alguna ruta pública, hazlo aquí
+        # if request.path == '/auth/login':
+        #     return None  # Permitir login sin API Key (opcional)
+
+        if request.method == 'OPTIONS': # Permitir todas las peticiones preflight (CORS) sin API Key para web
+            return None
+
+        api_key = request.headers.get('X-API-Key')
+        expected_key =app.config.get('API_KEY')
+        if not api_key or api_key != expected_key:
+            return jsonify({'message': 'API Key inválida o ausente'}), 401
 
     # Configuración del PostgreSQL
     app.config.from_object(Config)

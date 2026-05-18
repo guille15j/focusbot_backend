@@ -64,8 +64,9 @@ def link_bot(data, user_id):
             from services.mqtt_service import mqtt_client
             mqtt_client.subscribe(f"focusapp/{mac}/status", qos=0)
             mqtt_client.subscribe(f"focusapp/{mac}/result", qos=0)
+            print(f"[MQTT] Suscrito a topics de {mac}: status y result")
         except Exception:
-            pass
+            print(f"[MQTT] Error suscribiendo a topics de {mac}: {e}")
 
         return {
             'message': 'FocusBot vinculado con éxito',

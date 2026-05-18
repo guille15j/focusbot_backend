@@ -30,8 +30,6 @@ services:
     build: ./focusbot-server
     container_name: focus_api
     restart: always
-    ports:
-      - "5000:5000"
     volumes:
       - ./focusbot-server:/app
     env_file: .env
@@ -43,13 +41,29 @@ services:
       - MQTT_PORT=${MQTT_PORT}
       - SECRET_KEY=${SECRET_KEY}
     depends_on:
-      db:
-        condition: service_healthy
+      # db:
+      #   condition: service_healthy
       mqtt:
         condition: service_started
     networks:
       - focus_net
 
+  nginx:
+    image: nginx:alpine
+    container_name: focus_nginx
+    restart: always
+    ports:
+      - "80:80"     # HTTP
+      - "443:443"   # HTTPs
+    volumes:
+      - ./nginx/conf:/etc/nginx/conf.d
+      - ./certbot/www:/var/www/certbot
+      - ./certbot/conf:/etc/letsencrypt
+    depends_on:
+      - api
+    networks:
+      - focus_net
+    
 networks:
   focus_net:
     driver: bridge

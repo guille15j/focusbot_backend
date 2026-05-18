@@ -14,7 +14,8 @@ def generate_token(user_id):
 
         payload = {
             # Expedicion en 24 horas desde ahora
-            'exp': now + datetime.timedelta(days=1),
+            # 'exp': now + datetime.timedelta(days=1),
+            'exp': now + datetime.timedelta(minutes=5),
 
             # Iniciacion desde el momento actual
             'iat': now,
@@ -74,3 +75,10 @@ def token_required(function):
         return function(current_user, *args, **kwargs)
 
     return decorated
+
+def require_api_key():
+    api_key = request.headers.get('X-API-Key')
+    expected_key = os.getenv('API_KEY')
+    if not api_key or api_key != expected_key:
+        return jsonify({'error': 'API Key inválida o ausente'}), 401
+    return None  # continuar con la petición

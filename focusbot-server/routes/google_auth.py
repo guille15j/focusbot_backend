@@ -8,7 +8,6 @@ from utils.data_cast import to_str
 
 google_bp = Blueprint('google_auth', __name__)
 
-
 @google_bp.route('/google', methods=['POST'])
 def google_login():
     """

@@ -1,7 +1,36 @@
+# Entorno
 .env
+
+# Documentación local
 file_struct.md
+
+# Python cache
 **/__pycache__/
 *.py[cod]
 *$py.class
+
+# Logs y datos temporales
 **/log/
 **/data/
+
+# Certbot (NO debe ir al repo)
+certbot/
+
+# Nginx generado o temporal
+nginx/
+
+# Backups locales
+docker-compose.yml.backup
+
+# Node / React Native
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python virtual env
+venv/
+.venv/
+
+# Docker
+*.pid

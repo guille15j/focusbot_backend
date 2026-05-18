@@ -11,3 +11,4 @@ class Config:
     MQTT_BROKER = os.getenv("MQTT_BROKER", "mqtt")
     MQTT_PORT = 1883
     GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+    API_KEY = os.getenv('API_KEY')
