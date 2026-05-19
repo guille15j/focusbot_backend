@@ -1,5 +1,6 @@
 from services.db_service import db, User, Activity, Bot, ActivityType, ActivityCategory, ActivityState, ActivityResults, BotStatus
 from services.mqtt_service import publicar_comando
+from services.bot_service import editBot
 from utils import *
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import timezone, timedelta, datetime
@@ -187,6 +188,26 @@ def editActivity(current_user, activity_id, data):
                 "message": f"Transición de estado no permitida: no se puede pasar de '{act.state.value}' a '{str(estado)}'"
             }, 400
 
+    if estado == ActivityState.EN_CURSO:
+        bot = Bot.query.get(act.bot_id)
+        if bot:
+            # No permitir si el bot ya está en FOCUSING
+            if bot.status == BotStatus.FOCUSING:
+                return {
+                    "message": "El bot ya está ejecutando otra actividad. Espera a que termine."
+                }, 400
+
+            # Si está IDLE pero no ha sincronizado en 10 minutos, marcarlo OFFLINE y rechazar
+            if bot.status == BotStatus.IDLE:
+                ahora = datetime.utcnow()
+                if bot.last_sync is None or (ahora - bot.last_sync).total_seconds() >= 600:
+                    
+                    editBot(current_user, bot.bot_id, {'status': 'OFFLINE'})
+                    return {
+                        "message": "El bot no está sincronizado. Se ha marcado como OFFLINE. Reinícialo manualmente."
+                    }, 400
+
+
     if estado == ActivityState.COMPLETADO and data.get('result') is None:
         return {
             "message": "Para completar una actividad es obligatorio indicar un resultado (SUCCESS o FAILED)."
@@ -221,7 +242,6 @@ def editActivity(current_user, activity_id, data):
             if value is not None:
                 setattr(act, field, value)
 
-        
         # --- ENVÍO DE COMANDO MQTT ---
         if estado is not None:
             print(f"[DEBUG-EDIT] Estado solicitado: {estado}, Estado previo: {estado_previo}",flush=True)
@@ -234,18 +254,10 @@ def editActivity(current_user, activity_id, data):
                 if comando:
                     bot = Bot.query.get(act.bot_id)
                     if bot and bot.mac_address:
-                        # inicio_espera = datetime.utcnow()
-                        # while not mqtt_client.is_connected():
-                        #     if (datetime.utcnow() - inicio_espera).total_seconds() > 5:
-                        #         print("[MQTT] Timeout esperando conexión al broker.", flush=True)
-                        #         break
-                        #     time.sleep(0.5)
-                        
                         print("[MQTT] Publicando el comando...", flush=True)
                         publicar_comando(bot.mac_address, comando)
                         print("[MQTT] Comando publicado", flush=True)
 
-        
         db.session.commit()
 
         return {"message": "Actividad actualizada correctamente."}, 200
@@ -253,7 +265,6 @@ def editActivity(current_user, activity_id, data):
     except Exception as e:
         db.session.rollback()
         return {"error": f"Error actualizando la actividad - {str(e)}", "details": str(e)}, 500
-
 def deleteActivity(current_user, activity_id):
     act = Activity.query.filter(Activity.activity_id == activity_id, Activity.user_id == current_user.user_id).first()
 

@@ -39,7 +39,7 @@ def register_user(data):
             phone=to_str(data.get('phone'), 20),
             profile_img=data.get('profile_img'),
             timezone=to_str(data.get('timezone'), 50),
-            name_detail=to_str(data.get('name_detail'), 50) or f"Perfil de {nickname}",
+            name_detail=to_str(data.get('name_detail'), 50) or None,
             description_detail=data.get('description_detail'),
             severity=SeverityEnum.LEVE
         )
@@ -113,7 +113,7 @@ def login_user(data):
             "last_name": user.last_name,   # campos para que
             "email": user.email,           # la App los reciba ya
             "birth_date": str(user.birth_date), # formateados
-            "profile_img": user.profile_img, # <--- El string Base64 largo
+            "profile_img": user.profile_img, 
             "timezone": user.timezone or "UTC",
             "name_detail": user.name_detail,
             "description_detail": user.description_detail,

@@ -96,10 +96,17 @@ def google_login():
             'message': 'Inicio de sesión con Google completado',
             'token': jwt_token,
             'user': {
-                'user_id': user.user_id,
-                'nickname': user.nickname,
-                'email': user.email,
-                'profile_img': user.profile_img
+                "user_id": user.user_id,
+                "nickname": user.nickname,
+                "first_name": user.first_name, # Añade estos
+                "last_name": user.last_name,   # campos para que
+                "email": user.email,           # la App los reciba ya
+                "birth_date": str(user.birth_date), # formateados
+                "profile_img": user.profile_img, 
+                "timezone": user.timezone or "UTC",
+                "name_detail": user.name_detail,
+                "description_detail": user.description_detail,
+                "severity": user.severity.value if hasattr(user.severity, 'value') else user.severity
             }
         }), 200
 
