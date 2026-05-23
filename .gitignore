@@ -34,3 +34,6 @@ venv/
 
 # Docker
 *.pid
+
+test_endpoints.html
+test_google_login.html

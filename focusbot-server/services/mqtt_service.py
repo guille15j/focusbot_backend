@@ -3,6 +3,25 @@ import os
 import json
 from services.db_service import db, Bot, Activity, User, ActivityState, ActivityResults, BotStatus
 from datetime import datetime, timedelta
+import time
+# Threading
+# El módulo `threading` permite ejecutar código en paralelo (hilos).
+# En nuestro caso, el servidor Flask corre en un hilo y el cliente MQTT
+# (que está en `loop_start()`) corre en otro. Ambos acceden al mismo
+# diccionario `_ultimo_estado`:
+#   • Flask escribe al solicitar el estado.
+#   • MQTT escribe al recibir la respuesta del bot.
+#
+# Para evitar que ambos hilos toquen los datos a la vez (condición de
+# carrera), usamos un `Lock`.  Solo un hilo puede entrar en el bloque
+# `with _estado_lock:` cada vez. El otro espera.
+# Asíncrono no significa seguro: si dos hilos comparten memoria, Lock es
+# obligatorio.
+import threading
+
+# Almacena el último estado recibido por MAC (para verificaciones activas)
+_ultimo_estado = {}
+_estado_lock = threading.Lock()
 
 # Usamos el nombre que Mosquitto reconoce
 mqtt_client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION2, 
@@ -78,6 +97,12 @@ def on_message(client, userdata, msg):
 
                 editBot(user, bot.bot_id, {'status': status_enum.value})
                 bot.last_sync = datetime.utcnow() + timedelta(hours=2)
+                # Guardar el estado para verificaciones activas
+                with _estado_lock:
+                    _ultimo_estado[mac] = {
+                        "status": nuevo_status,
+                        "timestamp": datetime.utcnow()
+                    }
                 db.session.commit()
                 print(f"[MQTT] Estado actualizado: {mac} -> {status_enum.value}", flush=True)
 
@@ -180,3 +205,26 @@ def publicar_comando(mac, comando):
         print(f'[MQTT] Comando publicado: {comando}')
     except Exception as e:
         print(f"[MQTT] Error publicando comando en {topic}: {e}", flush=True)
+
+def verificar_estado_bot(bot_mac):
+    """
+    Envía SOLICITAR_ESTADO al bot y espera hasta 5 segundos una respuesta
+    real en el topic de status. No consulta la base de datos.
+    """
+    t0 = datetime.utcnow()
+    publicar_comando(bot_mac, {"accion": "SOLICITAR_ESTADO"})
+
+    timeout = 5
+    interval = 0.5
+    waited = 0.0
+
+    while waited < timeout:
+        time.sleep(interval)
+        waited += interval
+        with _estado_lock:
+            entry = _ultimo_estado.get(bot_mac)
+            if entry and entry["timestamp"] > t0:
+                # Estado fresco recibido después de la solicitud
+                return entry["status"]
+
+    return None

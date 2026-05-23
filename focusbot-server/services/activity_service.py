@@ -1,9 +1,10 @@
 from services.db_service import db, User, Activity, Bot, ActivityType, ActivityCategory, ActivityState, ActivityResults, BotStatus
-from services.mqtt_service import publicar_comando
+from services.mqtt_service import publicar_comando, verificar_estado_bot
 from services.bot_service import editBot
 from utils import *
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import timezone, timedelta, datetime
+import time
 
 from flask import jsonify
 
@@ -176,10 +177,11 @@ def editActivity(current_user, activity_id, data):
     ).first()
 
     if not act:
-        return {"error": "Actividad no encontrada o no tienes permiso para editarla"}, 404
+        return {"message": "Actividad no encontrada o no tienes permiso para editarla"}, 404
 
     estado = data.get('state')
     if estado is not None:
+        
         if isinstance(estado, str):
             estado = to_enum(estado, ActivityState)
         
@@ -188,8 +190,39 @@ def editActivity(current_user, activity_id, data):
                 "message": f"Transición de estado no permitida: no se puede pasar de '{act.state.value}' a '{str(estado)}'"
             }, 400
 
-    if estado == ActivityState.EN_CURSO:
+        # Verificar estado real mediante MQTT
+        
         bot = Bot.query.get(act.bot_id)
+        if bot:
+            estado_real = verificar_estado_bot(bot.mac_address)
+
+            if estado_real is None:
+                
+                editBot(current_user, bot.bot_id, {'status': 'OFFLINE'})
+                return {
+                    "message": "El bot no responde. Se ha marcado como OFFLINE."
+                }, 503
+            elif estado_real != "IDLE":
+                return {
+                    "message": f"El bot está ocupado (estado: {estado_real}). Espera a que termine."
+                }, 409
+            else:
+                # El bot está IDLE, actualizar last_sync con zona horaria
+                tz = None
+                tz_str = (current_user.timezone or 'UTC').strip().upper()
+                if tz_str.startswith('UTC'):
+                    offset_str = tz_str[3:]
+                    try:
+                        offset_hours = int(offset_str) if offset_str else 0
+                        tz = timezone(timedelta(hours=offset_hours))
+                    except ValueError:
+                        tz = None
+                bot.last_sync = datetime.now(tz=tz).replace(tzinfo=None) if tz else datetime.utcnow()
+                db.session.commit()
+        else:
+            return { 'message':"El bot seleccionado no se encuentra disponible."}, 404
+
+    if estado == ActivityState.EN_CURSO:
         if bot:
             # No permitir si el bot ya está en FOCUSING
             if bot.status == BotStatus.FOCUSING:
@@ -197,18 +230,40 @@ def editActivity(current_user, activity_id, data):
                     "message": "El bot ya está ejecutando otra actividad. Espera a que termine."
                 }, 400
 
-            # Si está IDLE pero no ha sincronizado en 10 minutos, marcarlo OFFLINE y rechazar
-            if bot.status == BotStatus.IDLE:
-                ahora = datetime.utcnow()
-                if bot.last_sync is None or (ahora - bot.last_sync).total_seconds() >= 600:
-                    
-                    editBot(current_user, bot.bot_id, {'status': 'OFFLINE'})
-                    return {
-                        "message": "El bot no está sincronizado. Se ha marcado como OFFLINE. Reinícialo manualmente."
-                    }, 400
+            if bot.status == BotStatus.OFFLINE:
+                return {
+                    "message": "El bot está desconectado. Inténtalo más tarde."
+                }, 400
 
+            # Verificar estado real mediante MQTT
+            estado_real = verificar_estado_bot(bot.mac_address)
 
+            if estado_real is None:
+                editBot(current_user, bot.bot_id, {'status': 'OFFLINE'})
+                return {
+                    "message": "El bot no responde. Se ha marcado como OFFLINE."
+                }, 503
+            elif estado_real != "IDLE":
+                return {
+                    "message": f"El bot está ocupado (estado: {estado_real}). Espera a que termine."
+                }, 409
+            else:
+                # El bot está IDLE, actualizar last_sync con zona horaria
+                tz = None
+                tz_str = (current_user.timezone or 'UTC').strip().upper()
+                if tz_str.startswith('UTC'):
+                    offset_str = tz_str[3:]
+                    try:
+                        offset_hours = int(offset_str) if offset_str else 0
+                        tz = timezone(timedelta(hours=offset_hours))
+                    except ValueError:
+                        tz = None
+                bot.last_sync = datetime.now(tz=tz).replace(tzinfo=None) if tz else datetime.utcnow()
+                db.session.commit()
+
+    # COMPROBACION NECESARIA PARA EL BOT QUE USA EL MISMO SERVICES TRAS UN COMANDO MQTT
     if estado == ActivityState.COMPLETADO and data.get('result') is None:
+        print('[SERVER] Para completar una actividad es obligatorio indicar un resultado (SUCCESS o FAILED) - ERROR EN EL BOT', flush=True)
         return {
             "message": "Para completar una actividad es obligatorio indicar un resultado (SUCCESS o FAILED)."
         }, 400
@@ -223,7 +278,7 @@ def editActivity(current_user, activity_id, data):
     tz = None
     tz_str = (current_user.timezone or 'UTC').strip().upper()
     if tz_str.startswith('UTC'):
-        offset_str = tz_str[3:]  # ej: "+2", "-5", "+0", ""
+        offset_str = tz_str[3:]
         try:
             offset_hours = int(offset_str) if offset_str else 0
             tz = timezone(timedelta(hours=offset_hours))
@@ -242,14 +297,14 @@ def editActivity(current_user, activity_id, data):
             if value is not None:
                 setattr(act, field, value)
 
-        # --- ENVÍO DE COMANDO MQTT ---
+        # ENVIO DE COMANDO MQTT - DEBUG PARA PRUEBAS
         if estado is not None:
-            print(f"[DEBUG-EDIT] Estado solicitado: {estado}, Estado previo: {estado_previo}",flush=True)
-            print(f"[DEBUG-EDIT] ¿Enviará comando? {estado in [ActivityState.EN_CURSO, ActivityState.PAUSADO, ActivityState.CANCELADO]}",flush=True)
+            print(f"[DEBUG-EDIT] Estado solicitado: {estado}, Estado previo: {estado_previo}", flush=True)
+            print(f"[DEBUG-EDIT] ¿Enviará comando? {estado in [ActivityState.EN_CURSO, ActivityState.PAUSADO, ActivityState.CANCELADO]}", flush=True)
             
             if estado in [ActivityState.EN_CURSO, ActivityState.PAUSADO, ActivityState.CANCELADO]:
                 comando = construirComando(act, estado, estado_previo)
-                print(f"[DEBUG-EDIT] Comando construido: {comando}",flush=True)
+                print(f"[DEBUG-EDIT] Comando construido: {comando}", flush=True)
                 
                 if comando:
                     bot = Bot.query.get(act.bot_id)
