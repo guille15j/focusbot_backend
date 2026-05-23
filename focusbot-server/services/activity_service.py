@@ -197,8 +197,13 @@ def editActivity(current_user, activity_id, data):
             estado_real = verificar_estado_bot(bot.mac_address)
 
             if estado_real is None:
-                
+
                 editBot(current_user, bot.bot_id, {'status': 'OFFLINE'})
+                acts = Activity.query.filter(Activity.bot_id == bot.bot_id, Activity.state == ActivityState.EN_CURSO).all()
+                for a in acts:
+                    a.state = ActivityState.POSPUESTO
+                
+                db.session.commit()
                 return {
                     "message": "El bot no responde. Se ha marcado como OFFLINE."
                 }, 503
@@ -234,32 +239,6 @@ def editActivity(current_user, activity_id, data):
                 return {
                     "message": "El bot está desconectado. Inténtalo más tarde."
                 }, 400
-
-            # Verificar estado real mediante MQTT
-            estado_real = verificar_estado_bot(bot.mac_address)
-
-            if estado_real is None:
-                editBot(current_user, bot.bot_id, {'status': 'OFFLINE'})
-                return {
-                    "message": "El bot no responde. Se ha marcado como OFFLINE."
-                }, 503
-            elif estado_real != "IDLE":
-                return {
-                    "message": f"El bot está ocupado (estado: {estado_real}). Espera a que termine."
-                }, 409
-            else:
-                # El bot está IDLE, actualizar last_sync con zona horaria
-                tz = None
-                tz_str = (current_user.timezone or 'UTC').strip().upper()
-                if tz_str.startswith('UTC'):
-                    offset_str = tz_str[3:]
-                    try:
-                        offset_hours = int(offset_str) if offset_str else 0
-                        tz = timezone(timedelta(hours=offset_hours))
-                    except ValueError:
-                        tz = None
-                bot.last_sync = datetime.now(tz=tz).replace(tzinfo=None) if tz else datetime.utcnow()
-                db.session.commit()
 
     # COMPROBACION NECESARIA PARA EL BOT QUE USA EL MISMO SERVICES TRAS UN COMANDO MQTT
     if estado == ActivityState.COMPLETADO and data.get('result') is None:
@@ -313,6 +292,28 @@ def editActivity(current_user, activity_id, data):
                         publicar_comando(bot.mac_address, comando)
                         print("[MQTT] Comando publicado", flush=True)
 
+                        # Solo para INICIAR_ACTIVIDAD: esperar confirmación FOCUSING del bot
+                        if estado == ActivityState.EN_CURSO:
+                            print("[DEBUG-EDIT] Esperando confirmación FOCUSING del bot...", flush=True)
+                            timeout = 10
+                            interval = 0.5
+                            waited = 0.0
+                            confirmed = False
+                            while waited < timeout:
+                                time.sleep(interval)
+                                waited += interval
+                                db.session.refresh(bot)
+                                if bot.status == BotStatus.FOCUSING:
+                                    confirmed = True
+                                    break
+                            if not confirmed:
+                                editBot(current_user, bot.bot_id, {'status': 'OFFLINE'})
+                                act.state = ActivityState.POSPUESTO
+                                db.session.commit()
+                                return {
+                                    "message": "El bot no confirmó la recepción de la actividad. Se ha marcado como OFFLINE."
+                                }, 503
+
         db.session.commit()
 
         return {"message": "Actividad actualizada correctamente."}, 200
@@ -320,6 +321,7 @@ def editActivity(current_user, activity_id, data):
     except Exception as e:
         db.session.rollback()
         return {"error": f"Error actualizando la actividad - {str(e)}", "details": str(e)}, 500
+
 def deleteActivity(current_user, activity_id):
     act = Activity.query.filter(Activity.activity_id == activity_id, Activity.user_id == current_user.user_id).first()
 
