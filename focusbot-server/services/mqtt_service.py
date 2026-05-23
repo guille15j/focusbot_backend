@@ -45,11 +45,13 @@ def on_message(client, userdata, msg):
             partes = msg.topic.split('/')
             if len(partes) < 3:
                 return
+
             mac = partes[1]  # lo usaremos para filtrar y encontrar el bot real
             tipo = partes[2]  # 'status' o 'result' depende del topic que sea lo usaremos para filtrar y operar
+
             print(f"[MQTT] Recibido - Topic: {msg.topic}, Payload: {msg.payload.decode()}", flush=True)
 
-            # Para solucionar problemas con importaciones infinitas las hacemos internas
+            # Para solucionar problemas con importaciones infinitas entre las fucniones que blqouean el fluijno y rompen la fucnion
             from services.db_service import db, Bot, Activity, User
             from services.bot_service import editBot
             from services.activity_service import editActivity
@@ -57,14 +59,16 @@ def on_message(client, userdata, msg):
             from pydantic import BaseModel, ValidationError
 
             if tipo == 'status':
-                # Validamos con Pydantic
+                # Validamos con Pydantic con una declaracion interna fde ka clase
                 class StatusPayload(BaseModel):
                     status: str
 
                 try:
                     data = json.loads(msg.payload.decode())
-                    validated = StatusPayload(**data)
-                    nuevo_status = validated.status
+
+                    validated = StatusPayload(**data) #descomponemos el mensaje
+                    nuevo_status = validated.status #sacamos el estado
+
                 except (json.JSONDecodeError, ValidationError) as e:
                     print(f"[MQTT] Formato inválido en mensaje de estado de {mac}: {e}", flush=True)
                     return
@@ -117,6 +121,15 @@ def on_message(client, userdata, msg):
                 if status_enum is None:
                     print(f"[MQTT] Estado inválido recibido de {mac}: {nuevo_status}", flush=True)
                     return
+
+                if nuevo_status == "FOCUSING":
+                    #Si ese apsa a focus comprobacion que no sea que venga de una pausa ( como un bot solo tiene una actividad a la vez y ay tenemos mecansimos que se aseguran de esto buscamos pasuados para es ebot)
+                    pausado  = Activity.query.filter(Activity.state == ActivityState.PAUSADO, Activity.bot_id == bot.bot_id).first()
+
+                    if pausado:
+                        pausado.state = ActivityState.EN_CURSO
+                        db.session.commit()
+                        print(f"[MQTT] Actividad {pausado.activity_id} reanudada directamente.", flush=True)
 
                 editBot(user, bot.bot_id, {'status': status_enum.value})
                 bot.last_sync = datetime.utcnow() + timedelta(hours=2)

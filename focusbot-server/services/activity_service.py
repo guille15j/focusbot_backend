@@ -198,7 +198,10 @@ def editActivity(current_user, activity_id, data):
         estado_real = verificar_estado_bot(bot.mac_address)
         if estado_real is None:
             editBot(current_user, bot.bot_id, {'status': 'OFFLINE'})
-            acts = Activity.query.filter(Activity.bot_id == bot.bot_id, Activity.state == ActivityState.EN_CURSO).all()
+            acts = Activity.query.filter(
+                Activity.bot_id == bot.bot_id,
+                Activity.state.in_([ActivityState.EN_CURSO, ActivityState.PAUSADO])
+            ).all()
             for a in acts:
                 a.state = ActivityState.POSPUESTO
             db.session.commit()
