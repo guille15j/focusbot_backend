@@ -4,7 +4,7 @@ from .mqtt_service import init_mqtt, mqtt_client, on_connect, asegurar_conexion
 from .bot_service import link_bot, getBotsByUser, getBotById, editBot, deleteBot
 from .user_service import updateUserPatch, getUser
 from .activity_service import getActivitiesUsr, getActivity, createActivity, editActivity, deleteActivity, getTypesUsr, createType, editType, deleteType
-from .history_service import recordByID, calculateRecord, getAllRecords,getWeeklyDashboard
+from .history_service import recordByID, calculateRecord, getAllRecords,getWeeklyDashboard, getRecommendations
 
 
 __all__ = [
@@ -60,5 +60,6 @@ __all__ = [
     'calculateRecord',
     'recordByID',
     'getAllRecords',
-    'getWeeklyDashboard'
+    'getWeeklyDashboard',
+    'getRecommendations'
 ]

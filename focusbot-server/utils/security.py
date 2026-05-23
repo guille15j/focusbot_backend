@@ -14,8 +14,8 @@ def generate_token(user_id):
 
         payload = {
             # Expedicion en 24 horas desde ahora
-            # 'exp': now + datetime.timedelta(days=1),
-            'exp': now + datetime.timedelta(minutes=5),
+            'exp': now + datetime.timedelta(days=1),
+            # 'exp': now + datetime.timedelta(minutes=5),
 
             # Iniciacion desde el momento actual
             'iat': now,

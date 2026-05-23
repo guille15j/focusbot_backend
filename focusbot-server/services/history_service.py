@@ -1,7 +1,7 @@
 from datetime import timedelta, datetime
 from operator import itemgetter
 from sqlalchemy import or_, and_
-from services.db_service import db, Activity, ActivityState, ActivityCategory, ActivityResults, History
+from services.db_service import db, Activity, ActivityState, ActivityCategory, ActivityResults, History, ActivityType
 from utils import *
 
 def calculateRecord(current_user, data):
@@ -314,3 +314,120 @@ def getAllRecords (current_user):
         })
 
     return {"records": records_out}, 200
+
+def getRecommendations(current_user):
+    """
+    Genera recomendaciones personalizadas basadas en las actividades completadas del usuario.
+    Devuelve un diccionario con la lista de frases.
+    """
+    # Obtenemos todas las actividades completadas del usuario
+    completadas = Activity.query.filter(
+        Activity.user_id == current_user.user_id,
+        Activity.state == ActivityState.COMPLETADO
+    ).all()
+
+    # Si hay muy pocos datos, devolvemos un mensaje genérico
+    if len(completadas) < 3:
+        return {
+            'recomendaciones': [
+                "Completa más actividades para recibir recomendaciones personalizadas."
+            ]
+        }, 200
+
+    # Inicializamos acumuladores
+    cat_total = {}
+    cat_exitos = {}
+    dur_total = {}
+    dur_exitos = {}
+    franja_total = {'mañanas': 0, 'tardes': 0, 'noches': 0}
+    franja_exitos = {'mañanas': 0, 'tardes': 0, 'noches': 0}
+
+    for act in completadas:
+        # --- 1. Categoría ---
+        cat = act.category
+        cat_total[cat] = cat_total.get(cat, 0) + 1
+        if act.result == ActivityResults.SUCCESS:
+            cat_exitos[cat] = cat_exitos.get(cat, 0) + 1
+
+        # --- 2. Duración de trabajo (desde el tipo asociado) ---
+        tipo = ActivityType.query.get(act.type_id)
+        if tipo:
+            dur = tipo.work_duration
+            dur_total[dur] = dur_total.get(dur, 0) + 1
+            if act.result == ActivityResults.SUCCESS:
+                dur_exitos[dur] = dur_exitos.get(dur, 0) + 1
+
+        # --- 3. Franja horaria (a partir de init_date) ---
+        if act.init_date:
+            h = act.init_date.hour
+            if 6 <= h < 12:
+                franja = 'mañanas'
+            elif 12 <= h < 18:
+                franja = 'tardes'
+            else:
+                franja = 'noches'
+            franja_total[franja] += 1
+            if act.result == ActivityResults.SUCCESS:
+                franja_exitos[franja] += 1
+
+    # Función para elegir la mejor clave según tasa de éxito
+    def mejor_clave(total_dict, exito_dict):
+        mejor = None
+        mejor_tasa = -1
+        mejor_total = -1
+        for clave, total in total_dict.items():
+            exitos = exito_dict.get(clave, 0)
+            tasa = (exitos / total) * 100 if total > 0 else 0
+            if (tasa > mejor_tasa or
+                (tasa == mejor_tasa and total > mejor_total)):
+                mejor = clave
+                mejor_tasa = tasa
+                mejor_total = total
+        return mejor, mejor_tasa, mejor_total
+
+    # Construimos las frases
+    frases = []
+
+    # 1) Categoría más exitosa
+    cat, tasa_cat, tot_cat = mejor_clave(cat_total, cat_exitos)
+    if cat:
+        frases.append(
+            f"Tu categoría más productiva es {cat.value} con un {int(tasa_cat)}% de éxito en {tot_cat} intentos."
+        )
+
+    # 2) Duración óptima
+    dur, tasa_dur, tot_dur = mejor_clave(dur_total, dur_exitos)
+    if dur:
+        frases.append(
+            f"Rindes mejor con sesiones de {dur} minutos ({int(tasa_dur)}% de éxito en {tot_dur} actividades)."
+        )
+
+    # 3) Franja horaria más productiva
+    franja, tasa_franja, tot_franja = mejor_clave(franja_total, franja_exitos)
+    if franja:
+        frases.append(
+            f"Tus {franja} son más productivas ({int(tasa_franja)}% de éxito en {tot_franja} actividades)."
+        )
+
+    # --- 4. Tipo de actividad más efectivo ---
+    tipo_total = {}
+    tipo_exitos = {}
+    tipo_nombre = {}
+
+    for act in completadas:
+        tipo = ActivityType.query.get(act.type_id)
+        if tipo:
+            tipo_id = tipo.type_id
+            tipo_total[tipo_id] = tipo_total.get(tipo_id, 0) + 1
+            tipo_nombre[tipo_id] = tipo.name_type
+            if act.result == ActivityResults.SUCCESS:
+                tipo_exitos[tipo_id] = tipo_exitos.get(tipo_id, 0) + 1
+
+    mejor_tipo_id, tasa_tipo, tot_tipo = mejor_clave(tipo_total, tipo_exitos)
+    if mejor_tipo_id:
+        nombre_tipo = tipo_nombre.get(mejor_tipo_id, 'desconocido')
+        frases.append(
+            f"El tipo {nombre_tipo} es el más efectivo (usado en {tot_tipo} actividades)."
+        )
+
+    return {'recomendaciones': frases}, 200

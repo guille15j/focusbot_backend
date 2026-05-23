@@ -38,3 +38,10 @@ def get_Record_by_ID(current_user, record_id):
 def get_records(current_user):
     records, status = getAllRecords(current_user)
     return jsonify(records), status
+
+@history_bp.route('/recommendations', methods=['GET'])
+@token_required
+def get_recommendations(current_user):
+    response, status = getRecommendations(current_user)
+    print(response)
+    return jsonify(response), status
