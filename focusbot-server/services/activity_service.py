@@ -177,68 +177,54 @@ def editActivity(current_user, activity_id, data):
     ).first()
 
     if not act:
-        return {"message": "Actividad no encontrada o no tienes permiso para editarla"}, 404
+        return {"error": "Actividad no encontrada o no tienes permiso para editarla"}, 404
 
     estado = data.get('state')
     if estado is not None:
-        
         if isinstance(estado, str):
             estado = to_enum(estado, ActivityState)
-        
+
         if estado not in TRANSICIONES_VALIDAS.get(act.state, []):
             return {
                 "message": f"Transición de estado no permitida: no se puede pasar de '{act.state.value}' a '{str(estado)}'"
             }, 400
 
-        # Verificar estado real mediante MQTT
-        
-        bot = Bot.query.get(act.bot_id)
-        if bot:
-            estado_real = verificar_estado_bot(bot.mac_address)
-
-            if estado_real is None:
-
-                editBot(current_user, bot.bot_id, {'status': 'OFFLINE'})
-                acts = Activity.query.filter(Activity.bot_id == bot.bot_id, Activity.state == ActivityState.EN_CURSO).all()
-                for a in acts:
-                    a.state = ActivityState.POSPUESTO
-                
-                db.session.commit()
-                return {
-                    "message": "El bot no responde. Se ha marcado como OFFLINE."
-                }, 503
-            elif estado_real != "IDLE":
-                return {
-                    "message": f"El bot está ocupado (estado: {estado_real}). Espera a que termine."
-                }, 409
-            else:
-                # El bot está IDLE, actualizar last_sync con zona horaria
-                tz = None
-                tz_str = (current_user.timezone or 'UTC').strip().upper()
-                if tz_str.startswith('UTC'):
-                    offset_str = tz_str[3:]
-                    try:
-                        offset_hours = int(offset_str) if offset_str else 0
-                        tz = timezone(timedelta(hours=offset_hours))
-                    except ValueError:
-                        tz = None
-                bot.last_sync = datetime.now(tz=tz).replace(tzinfo=None) if tz else datetime.utcnow()
-                db.session.commit()
-        else:
-            return { 'message':"El bot seleccionado no se encuentra disponible."}, 404
-
     if estado == ActivityState.EN_CURSO:
-        if bot:
-            # No permitir si el bot ya está en FOCUSING
-            if bot.status == BotStatus.FOCUSING:
-                return {
-                    "message": "El bot ya está ejecutando otra actividad. Espera a que termine."
-                }, 400
+        bot = Bot.query.get(act.bot_id)
+        if not bot:
+            return {'message': "El bot seleccionado no se encuentra disponible."}, 404
 
-            if bot.status == BotStatus.OFFLINE:
-                return {
-                    "message": "El bot está desconectado. Inténtalo más tarde."
-                }, 400
+        # Verificar estado real del bot antes de iniciar
+        estado_real = verificar_estado_bot(bot.mac_address)
+        if estado_real is None:
+            editBot(current_user, bot.bot_id, {'status': 'OFFLINE'})
+            acts = Activity.query.filter(Activity.bot_id == bot.bot_id, Activity.state == ActivityState.EN_CURSO).all()
+            for a in acts:
+                a.state = ActivityState.POSPUESTO
+            db.session.commit()
+            return {"message": "El bot no responde. Se ha marcado como OFFLINE."}, 503
+        elif estado_real != "IDLE":
+            return {"message": f"El bot está ocupado (estado: {estado_real}). Espera a que termine."}, 409
+        else:
+            # Actualizar last_sync con zona horaria
+            tz = None
+            tz_str = (current_user.timezone or 'UTC').strip().upper()
+            if tz_str.startswith('UTC'):
+                offset_str = tz_str[3:]
+                try:
+                    offset_hours = int(offset_str) if offset_str else 0
+                    tz = timezone(timedelta(hours=offset_hours))
+                except ValueError:
+                    tz = None
+            bot.last_sync = datetime.now(tz=tz).replace(tzinfo=None) if tz else datetime.utcnow()
+            db.session.commit()
+
+        # No permitir si el bot ya está en FOCUSING
+        if bot.status == BotStatus.FOCUSING:
+            return {"message": "El bot ya está ejecutando otra actividad. Espera a que termine."}, 400
+
+        if bot.status == BotStatus.OFFLINE:
+            return {"message": "El bot está desconectado. Inténtalo más tarde."}, 400
 
     # COMPROBACION NECESARIA PARA EL BOT QUE USA EL MISMO SERVICES TRAS UN COMANDO MQTT
     if estado == ActivityState.COMPLETADO and data.get('result') is None:
@@ -311,7 +297,7 @@ def editActivity(current_user, activity_id, data):
                                 act.state = ActivityState.POSPUESTO
                                 db.session.commit()
                                 return {
-                                    "message": "El bot no confirmó la recepción de la actividad. Se ha marcado como OFFLINE."
+                                    "message": "El bot no confirmó la recepción de la actividad. Actividad pospuesta y bot marcado como OFFLINE."
                                 }, 503
 
         db.session.commit()

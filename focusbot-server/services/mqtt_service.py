@@ -57,7 +57,6 @@ def on_message(client, userdata, msg):
             from pydantic import BaseModel, ValidationError
 
             if tipo == 'status':
-                # Actualizar estado del bot
                 # Validamos con Pydantic
                 class StatusPayload(BaseModel):
                     status: str
@@ -74,13 +73,7 @@ def on_message(client, userdata, msg):
                     print(f"[MQTT] Mensaje de estado incompleto de {mac}", flush=True)
                     return
 
-                # Validar que el estado pertenece al enumerador
-                status_enum = to_enum(nuevo_status, BotStatus)
-                if status_enum is None:
-                    print(f"[MQTT] Estado inválido recibido de {mac}: {nuevo_status}", flush=True)
-                    return
-
-                # Solo permitir la actualización para bots que existan
+                # Buscar el bot y el usuario (necesarios tanto para PAUSED como para el resto)
                 bot = Bot.query.filter_by(mac_address=mac).first()
                 if not bot:
                     print(f"[MQTT] Bot con MAC {mac} no encontrado", flush=True)
@@ -95,9 +88,38 @@ def on_message(client, userdata, msg):
                     print(f"[MQTT] Usuario {bot.user_id} no encontrado", flush=True)
                     return
 
+                #Tratamiento especial para PAUSED
+                if nuevo_status == "PAUSED":
+                    print(f"[MQTT] Evento PAUSED recibido de {mac}, pausando actividad...", flush=True)
+                    activity = Activity.query.filter_by(
+                        bot_id=bot.bot_id,
+                        state=ActivityState.EN_CURSO
+                    ).first()
+                    if activity:
+                        editActivity(user, activity.activity_id, {'state': 'PAUSADO'})
+                        print(f"[MQTT] Actividad {activity.activity_id} pausada.", flush=True)
+                    else:
+                        print(f"[MQTT] No se encontró actividad EN_CURSO para el bot {mac}.", flush=True)
+                    
+                    # El bot sigue en FOCUSING
+                    editBot(user, bot.bot_id, {'status': 'FOCUSING'}) #Forzamos por si acaso ha habido algun corte previo
+                    bot.last_sync = datetime.utcnow() + timedelta(hours=2)
+                    with _estado_lock:
+                        _ultimo_estado[mac] = {
+                            "status": "PAUSED",
+                            "timestamp": datetime.utcnow()
+                        }
+                    db.session.commit()
+                    return
+
+                # Si no es PAUSED, validar que pertenece al enumerador
+                status_enum = to_enum(nuevo_status, BotStatus)
+                if status_enum is None:
+                    print(f"[MQTT] Estado inválido recibido de {mac}: {nuevo_status}", flush=True)
+                    return
+
                 editBot(user, bot.bot_id, {'status': status_enum.value})
                 bot.last_sync = datetime.utcnow() + timedelta(hours=2)
-                # Guardar el estado para verificaciones activas
                 with _estado_lock:
                     _ultimo_estado[mac] = {
                         "status": nuevo_status,
