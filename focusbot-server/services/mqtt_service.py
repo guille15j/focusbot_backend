@@ -116,6 +116,28 @@ def on_message(client, userdata, msg):
                     db.session.commit()
                     return
 
+                if nuevo_status == "POSPUESTO":
+                    print(f"[MQTT] Evento POSPUESTO recibido de {mac}, devolviendo actividad a pendiente...", flush=True)
+                    activity = Activity.query.filter(
+                        Activity.bot_id == bot.bot_id,
+                        Activity.state.in_([ActivityState.EN_CURSO, ActivityState.PAUSADO])
+                    ).first()
+                    if activity:
+                        activity.state = ActivityState.POSPUESTO
+                        print(f"[MQTT] Actividad {activity.activity_id} vuelta a PENDIENTE.", flush=True)
+                    else:
+                        print(f"[MQTT] No se encontró actividad activa o pausada para el bot {mac}.", flush=True)
+                    
+                    editBot(user, bot.bot_id, {'status': 'IDLE'})
+                    bot.last_sync = datetime.utcnow() + timedelta(hours=2)
+                    with _estado_lock:
+                        _ultimo_estado[mac] = {
+                            "status": "POSPUESTO",
+                            "timestamp": datetime.utcnow()
+                        }
+                    db.session.commit()
+                    return
+
                 # Si no es PAUSED, validar que pertenece al enumerador
                 status_enum = to_enum(nuevo_status, BotStatus)
                 if status_enum is None:
