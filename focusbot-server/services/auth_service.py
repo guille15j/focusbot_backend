@@ -1,4 +1,4 @@
-from services.db_service import db, User, SeverityEnum
+from services.db_service import db, User, SeverityEnum, Activity, Bot, History
 from utils import *
 from werkzeug.security import generate_password_hash, check_password_hash
 from services.email_service import generar_codigo_verificacion, enviar_correo_verificacion
@@ -252,3 +252,40 @@ def reset_password(data):
     except Exception as e:
         db.session.rollback()
         return {'message': 'Error actualizando la contraseña','error':str(e)}, 500
+
+def delete_user(current_user):
+    """
+    Elimina un usuario y todos sus datos asociados de la base de datos.
+    
+    Flujo:
+      1. Busca al usuario por ID.
+      2. Si no existe, retorna 404.
+      3. Elimina todos los registros dependientes:
+         - Actividades del usuario.
+         - Historiales del usuario.
+         - Bots asociados (se eliminan también; si prefieres solo desvincularlos,
+           cambia la lógica por `bot.user_id = None`).
+      4. Elimina al propio usuario.
+      5. Confirma la transacción.
+    
+    DEvuelve:
+      (dict, int): mensaje de éxito y código HTTP 200, o error con código correspondiente.
+    """
+    try:
+        user_id = current_user.user_id
+        user = User.query.get(user_id)
+        if not user:
+            return {'message': 'Usuario no encontrado'}, 404
+
+        Activity.query.filter_by(user_id=user_id).delete()
+        History.query.filter_by(user_id=user_id).delete()
+        Bot.query.filter_by(user_id=user_id).delete()
+        
+        db.session.delete(user)
+        db.session.commit()
+        
+        return {'message': 'Cuenta eliminada correctamente'}, 200
+
+    except Exception as e:
+        db.session.rollback()
+        return {'message': 'Error al eliminar la cuenta', 'error': str(e)}, 500

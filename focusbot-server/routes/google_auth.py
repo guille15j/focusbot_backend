@@ -93,7 +93,7 @@ def google_login():
         jwt_token = generate_token(user.user_id)
 
         return jsonify({
-            'message': 'Inicio de sesión con Google completado',
+            'message': 'Inicio de sesión con Google complet ado',
             'token': jwt_token,
             'user': {
                 "user_id": user.user_id,

@@ -1,8 +1,9 @@
 from flask import Blueprint, jsonify, request
-from services import register_user, login_user, reset_password, verify_email, reenviar_verificacion
+from services import register_user, login_user, reset_password, verify_email, reenviar_verificacion, delete_user
 from schemas.auth_schema import LoginSchema, ResetPasswordSchema, VerifyEmailSchema, ResendVerificationSchema
 from schemas.user_schema import UserCreate
 from schemas.base import validate_schema
+from utils import token_required
 
 auth_bp = Blueprint('auth', __name__) #Nos permite agripar los endpoints en bloques sin que tengan que estar todos en un mismo archivo
 
@@ -57,4 +58,19 @@ def resend_verification_route(validated_data: ResendVerificationSchema):
     Recibe JSON: { "identifier": "email o nickname" }
     """
     response, status_code = reenviar_verificacion(validated_data.identifier)
+    return jsonify(response), status_code
+
+@auth_bp.route('/delete-account', methods=['DELETE'])
+@token_required
+def delete_account(current_user):
+    """
+    Elimina permanentemente la cuenta del usuario autenticado.
+    Requiere token JWT válido en el header Authorization: Bearer <token>.
+    
+    Responde:
+        200: cuenta eliminada exitosamente.
+        404: usuario no encontrado (posible inconsistencia).
+        500: error interno al eliminar.
+    """
+    response, status_code = delete_user(current_user)
     return jsonify(response), status_code
