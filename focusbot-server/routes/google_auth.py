@@ -39,7 +39,8 @@ def google_login():
         info = id_token.verify_oauth2_token(
             token,
             google_requests.Request(),
-            os.getenv('GOOGLE_CLIENT_ID')
+            os.getenv('GOOGLE_CLIENT_ID'),
+            clock_skew_in_seconds=10 #Aceptamos margen de 10 segundos en el token
         )
 
         # Extraer datos del payload de Google
