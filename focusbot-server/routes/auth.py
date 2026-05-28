@@ -49,7 +49,7 @@ def verify_email_route():
     response, status_code = verify_email(validated.email, validated.codigo)
     return jsonify(response), status_code
 
-@auth_bp.route('/resend-verification', methods=['POST'])
+@auth_bp.route('/resend-code', methods=['POST'])
 @validate_schema(ResendVerificationSchema)
 def resend_verification_route(validated_data: ResendVerificationSchema):
     """
