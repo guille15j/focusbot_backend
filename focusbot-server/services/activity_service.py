@@ -12,31 +12,25 @@ def getActivitiesUsr(current_user):
     print('Iniciando recoleccion de actividades', flush=True)
     
     try:
-        # 1. Obtener todas las actividades del usuario
         activities = Activity.query.filter_by(user_id=current_user.user_id).all()
         print(f' - Devolviendo {len(activities)} actividades', flush=True)
         result = []
 
         for act in activities:
 
-            # 2. Búsqueda del Tipo asociado
             tipo = ActivityType.query.get(act.type_id)
             
-            # 3. Búsqueda del Bot asociado
             bot = Bot.query.get(act.bot_id)
 
-            # 4. Construcción del objeto de respuesta con serialización manual
             act_dict = {
                 'activity_id': act.activity_id,
                 'title': act.title,
-                # Serialización de Enums de la Actividad (.value)
                 'state': act.state.value if hasattr(act.state, 'value') else str(act.state),
                 'category': act.category.value if hasattr(act.category, 'value') else str(act.category),
                 'init_date': act.init_date.isoformat() if act.init_date else None,
                 'end_date': act.end_date.isoformat() if act.end_date else None,
                 'extra_data': act.extra_data or {},
                 
-                # Objeto del Tipo (ActivityType)
                 'type': {
                     'type_id': tipo.type_id,
                     'name_type': tipo.name_type,
@@ -46,7 +40,6 @@ def getActivitiesUsr(current_user):
                     'cycles_before_long': tipo.cycles_before_long
                 } if tipo else None,
 
-                # Objeto del Bot (corrigiendo el error de BotStatus)
                 'bot': {
                     'bot_id': bot.bot_id,
                     'name': bot.custom_name,
@@ -59,11 +52,10 @@ def getActivitiesUsr(current_user):
             result.append(act_dict)
             print(f' - Iteracion numero {len(result)}', flush=True)
         
-        # Retornamos la lista directamente (el router se encarga del jsonify)
         return result, 200
 
     except Exception as e:
-        # Imprime el error exacto en la consola de Flask para debug
+        # Imprime el error exacto en la consola de Flask
         print(f"ERROR EN getActivitiesUsr: {str(e)}", flush=True)
         return {
             'message': 'Error al obtener las actividades',
@@ -198,14 +190,19 @@ def editActivity(current_user, activity_id, data):
         estado_real = verificar_estado_bot(bot.mac_address)
         if estado_real is None:
             editBot(current_user, bot.bot_id, {'status': 'OFFLINE'})
+
             acts = Activity.query.filter(
                 Activity.bot_id == bot.bot_id,
                 Activity.state.in_([ActivityState.EN_CURSO, ActivityState.PAUSADO])
             ).all()
+
             for a in acts:
                 a.state = ActivityState.POSPUESTO
+
             db.session.commit()
+
             return {"message": "El bot no responde. Se ha marcado como OFFLINE."}, 503
+
         elif estado_real != "IDLE":
             return {"message": f"El bot está ocupado (estado: {estado_real}). Espera a que termine."}, 409
         else:
@@ -213,12 +210,15 @@ def editActivity(current_user, activity_id, data):
             tz = None
             tz_str = (current_user.timezone or 'UTC').strip().upper()
             if tz_str.startswith('UTC'):
+
                 offset_str = tz_str[3:]
+
                 try:
                     offset_hours = int(offset_str) if offset_str else 0
                     tz = timezone(timedelta(hours=offset_hours))
                 except ValueError:
                     tz = None
+
             bot.last_sync = datetime.now(tz=tz).replace(tzinfo=None) if tz else datetime.utcnow()
             db.session.commit()
 
@@ -229,7 +229,7 @@ def editActivity(current_user, activity_id, data):
         if bot.status == BotStatus.OFFLINE:
             return {"message": "El bot está desconectado. Inténtalo más tarde."}, 400
 
-    # COMPROBACION NECESARIA PARA EL BOT QUE USA EL MISMO SERVICES TRAS UN COMANDO MQTT
+  
     if estado == ActivityState.COMPLETADO and data.get('result') is None:
         print('[SERVER] Para completar una actividad es obligatorio indicar un resultado (SUCCESS o FAILED) - ERROR EN EL BOT', flush=True)
         return {
@@ -265,7 +265,7 @@ def editActivity(current_user, activity_id, data):
             if value is not None:
                 setattr(act, field, value)
 
-        # ENVIO DE COMANDO MQTT - DEBUG PARA PRUEBAS
+        # DEBUG
         if estado is not None:
             print(f"[DEBUG-EDIT] Estado solicitado: {estado}, Estado previo: {estado_previo}", flush=True)
             print(f"[DEBUG-EDIT] ¿Enviará comando? {estado in [ActivityState.EN_CURSO, ActivityState.PAUSADO, ActivityState.CANCELADO]}", flush=True)
@@ -418,7 +418,7 @@ def editType(current_user, type_id, data):
     if not activity_type:
         return {"message": "Tipo de actividad no encontrado"}, 404
 
-    # Impedir que se quite/agregue manualmente la marca [eliminado]
+    
     if '[eliminado]' in (activity_type.name_type or ''):
         nuevo_nombre = data.get('name_type')
         if nuevo_nombre is not None and '[eliminado]' not in nuevo_nombre:

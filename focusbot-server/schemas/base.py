@@ -4,8 +4,6 @@ from flask import request, jsonify
 from pydantic import ValidationError
 
 class BaseSchema(BaseModel):
-    # Permite a Pydantic leer datos directamente de objetos de SQLAlchemy
-    # y convierte automáticamente los Enums a su valor (string/int)
     model_config = ConfigDict(from_attributes=True, use_enum_values=True)
 
 def validate_schema(schema_class):

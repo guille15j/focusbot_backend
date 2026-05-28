@@ -164,8 +164,7 @@ def on_message(client, userdata, msg):
                 print(f"[MQTT] Estado actualizado: {mac} -> {status_enum.value}", flush=True)
 
             elif tipo == 'result':
-                # Actualizar resultado de actividad
-                # --- Validación con Pydantic ---
+                
                 class ResultPayload(BaseModel):
                     activity_id: int
                     result: str
@@ -230,9 +229,8 @@ def init_mqtt(app):
         mqtt_client._flask_app = app
 
         # Suscribirse a los topics de estado y resultados de los bots
-        mqtt_client.subscribe("focusapp/+/status", qos=1) # usamos el + para que se subscriba a todos los topics con la estructura y no a un unico topic sino a todos
-        mqtt_client.subscribe("focusapp/+/result", qos=1) # gracias a estos "comodines" el serivdor recibira los mensajes de estos topics aunque en el momento de incio esos topics no existieran
-
+        mqtt_client.subscribe("focusapp/+/status", qos=1) 
+        mqtt_client.subscribe("focusapp/+/result", qos=1) 
         mqtt_client.loop_start() 
         print("Bucle de escucha MQTT iniciado", flush=True)
     except Exception as e:

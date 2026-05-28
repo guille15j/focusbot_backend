@@ -11,8 +11,9 @@ user_bp = Blueprint('users', __name__)
 @token_required
 def userUpdate(current_user):
     data = request.get_json()
-    # Usamos el schema para validar lo que venga, pero permitimos campos opcionales
+    # Pydantic valida estructura y tipos
     validated = UserUpdate(**data)
+    
     response, status_code = updateUserPatch(current_user.user_id, validated.model_dump(exclude_unset=True))
     return jsonify(response), status_code
 

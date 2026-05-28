@@ -8,7 +8,6 @@ from schemas.base import validate_schema
 
 activities_bp = Blueprint('activities', __name__)
 
-# --- Rutas de Actividades ---
 @activities_bp.route('/', methods=['GET'])
 @token_required
 def getActivities(current_user):
@@ -39,7 +38,6 @@ def manage_activity(current_user, activity_id):
         response, status = editActivity(current_user, activity_id, validated.model_dump(exclude_unset=True))
     return jsonify(response), status
 
-# --- Rutas de Tipos de Actividad ---
 @activities_bp.route("/type", methods=['GET', 'POST'])
 @token_required
 def create_get_type(current_user):

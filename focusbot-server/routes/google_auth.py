@@ -54,12 +54,11 @@ def google_login():
         user = User.query.filter_by(google_id=google_id).first()
 
         if not user:
-            # No encontrado por google_id, buscar por email
+            
             user = User.query.filter_by(email=email).first()
 
             if user:
-                # El usuario ya existe con email/contraseña
-                # Vinculamos Google ID y verificamos automáticamente
+                
                 user.google_id = google_id
                 user.verified = True
                 db.session.commit()
@@ -102,7 +101,7 @@ def google_login():
                 "first_name": user.first_name, # Añade estos
                 "last_name": user.last_name,   # campos para que
                 "email": user.email,           # la App los reciba ya
-                "birth_date": str(user.birth_date), # formateados
+                "birth_date": str(user.birth_date), 
                 "profile_img": user.profile_img, 
                 "timezone": user.timezone or "UTC",
                 "name_detail": user.name_detail,
@@ -112,7 +111,6 @@ def google_login():
         }), 200
 
     except ValueError as e:
-        # Token inválido, expirado o manipulado
         return jsonify({'message': 'Token de Google inválido', 'error': str(e)}), 401
     except Exception as e:
         return jsonify({'message': 'Error en autenticación con Google', 'error': str(e)}), 500

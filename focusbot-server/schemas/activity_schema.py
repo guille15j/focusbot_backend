@@ -4,7 +4,7 @@ from datetime import datetime
 from schemas.base import BaseSchema
 from services.db_service import ActivityState, ActivityCategory, ActivityResults
 
-# --- ACTIVITY TYPES ---
+# ACTIVITY TYPES
 class ActivityTypeBase(BaseSchema):
     name_type: str = Field(..., max_length=50)
     work_duration: int = Field(..., ge=0)
@@ -16,7 +16,7 @@ class ActivityTypeResponse(ActivityTypeBase):
     type_id: int
     user_id: int
 
-# --- ACTIVITIES ---
+# ACTIVITIES 
 class ActivityBase(BaseSchema):
     title: str = Field(..., max_length=100)
     category: ActivityCategory = ActivityCategory.OTRAS

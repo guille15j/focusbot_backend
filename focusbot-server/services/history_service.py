@@ -32,7 +32,6 @@ def calculateRecord(current_user, data):
         return {"message": "Faltan los campos de fecha en la petición."}, 400
 
     try:
-        # 1. Normalización estricta de las fechas límites
         if isinstance(data['init_date_range'], str):
             init_range = datetime.fromisoformat(data['init_date_range'].replace('Z', ''))
             end_range = datetime.fromisoformat(data['end_date_range'].replace('Z', ''))
@@ -44,8 +43,7 @@ def calculateRecord(current_user, data):
         init_range = init_range.replace(hour=0, minute=0, second=0, microsecond=0)
         end_range = end_range.replace(hour=23, minute=59, second=59, microsecond=999999)
 
-        # 2. Filtro Base: Solo actividades con fechas de ejecución en el rango
-        # Esto excluye automáticamente las PENDIENTES que no tienen fechas
+       
         list_activities = Activity.query.filter(
             Activity.user_id == current_user.user_id,
             or_(
@@ -55,7 +53,6 @@ def calculateRecord(current_user, data):
             )
         ).all()
 
-        # 3. Inicialización de contadores de Estado y Resultados
         n_sucess = 0       # Resultado de efectividad (Calidad)
         n_completo = 0     # Estado: Completado (Volumen)
         n_pospuesto = 0    # Estado: Pospuesto
@@ -64,7 +61,6 @@ def calculateRecord(current_user, data):
         categorias = {c.name: 0 for c in ActivityCategory}
         total_time = timedelta()
 
-        # 4. Procesamiento de los datos del informe
         for v in list_activities:
             v_result_str = (v.result.name if hasattr(v.result, 'name') else str(v.result)).upper()
             v_state_str = (v.state.name if hasattr(v.state, 'name') else str(v.state)).upper()
@@ -91,7 +87,6 @@ def calculateRecord(current_user, data):
                 if cat_name in categorias:
                     categorias[cat_name] += 1
 
-        # 5. Determinación de la categoría top
         resultado_cat = dict(sorted(categorias.items(), key=itemgetter(1), reverse=True))
         if not list_activities or max(categorias.values()) == 0:
             categoria_top_str = "OTRAS"
@@ -105,7 +100,6 @@ def calculateRecord(current_user, data):
         # El total de actividades evaluadas en la tasa de éxito del informe
         total_valid_activities = n_completo + n_pospuesto + n_cancelado
 
-        # 6. Persistencia en Base de Datos
         record = History(
             user_id = current_user.user_id,
             init_date_range = init_range,
@@ -122,7 +116,6 @@ def calculateRecord(current_user, data):
         db.session.add(record)
         db.session.commit()
 
-        # 7. Formateo de respuesta
         return {
             "message": "Histórico creado con éxito", 
             "record": {
@@ -167,11 +160,9 @@ def getWeeklyDashboard(current_user):
     - hasValue (Booleano): true si ese día el usuario tuvo alguna actividad interactuada/creada, o false si el día está completamente vacío (para que la barra se muestre semitransparente como dicta tu estilo).
     """
     try:
-        # 1. Cálculo automático de la semana en curso (Lunes a Domingo)
         today = datetime.now()
         current_day = today.weekday()  # 0 = Lunes, 6 = Domingo
         
-        # Calculamos el lunes de esta semana a las 00:00:00
         monday_of_week = today - timedelta(days=current_day)
         monday_of_week = monday_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
         
@@ -179,7 +170,7 @@ def getWeeklyDashboard(current_user):
         sunday_of_week = monday_of_week + timedelta(days=6)
         sunday_of_week = sunday_of_week.replace(hour=23, minute=59, second=59, microsecond=999999)
 
-        # 2. CONSULTA A: Actividades con movimientos/fechas esta semana
+       
         executed_activities = Activity.query.filter(
             Activity.user_id == current_user.user_id,
             or_(
@@ -188,7 +179,6 @@ def getWeeklyDashboard(current_user):
             )
         ).all()
 
-        # 3. CONSULTA B: Total de pendientes del usuario (Global sin fecha)
         v_state_pendiente_str = "PENDIENTE"
         total_pendientes_actuales = Activity.query.filter(
             Activity.user_id == current_user.user_id,
@@ -198,7 +188,6 @@ def getWeeklyDashboard(current_user):
             )
         ).count()
 
-        # 4. Inicialización de la estructura del Gráfico de Barras Apiladas (Bloque B)
         # 0=L, 1=M, 2=X, 3=J, 4=V, 5=S, 6=D
         weekdays_letters = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
         chart_days_map = {
@@ -206,12 +195,10 @@ def getWeeklyDashboard(current_user):
             for i in range(7)
         }
 
-        # Variables para los KPIs Generales (Bloque A)
         total_completados_semana = 0
         total_time_semana = timedelta()
         categorias_semana = {c.name: 0 for c in ActivityCategory}
 
-        # 5. Distribución de datos en los cajones de la semana
         for v in executed_activities:
             v_state_str = (v.state.name if hasattr(v.state, 'name') else str(v.state)).upper()
 
@@ -247,7 +234,6 @@ def getWeeklyDashboard(current_user):
                     if cat_name in categorias_semana:
                         categorias_semana[cat_name] += 1
 
-        # 6. Resolución de Categoría Top de la semana
         resultado_cat = dict(sorted(categorias_semana.items(), key=itemgetter(1), reverse=True))
         if not executed_activities or max(categorias_semana.values()) == 0:
             top_category_semana = "Sin registros"
@@ -256,7 +242,6 @@ def getWeeklyDashboard(current_user):
 
         total_minutes_semana = int(total_time_semana.total_seconds() / 60)
 
-        # 7. Construcción del JSON estructurado final
         return {
             "summary": {
                 "total_completados": total_completados_semana,
@@ -343,13 +328,11 @@ def getRecommendations(current_user):
     franja_exitos = {'mañanas': 0, 'tardes': 0, 'noches': 0}
 
     for act in completadas:
-        # --- 1. Categoría ---
         cat = act.category
         cat_total[cat] = cat_total.get(cat, 0) + 1
         if act.result == ActivityResults.SUCCESS:
             cat_exitos[cat] = cat_exitos.get(cat, 0) + 1
 
-        # --- 2. Duración de trabajo (desde el tipo asociado) ---
         tipo = ActivityType.query.get(act.type_id)
         if tipo:
             dur = tipo.work_duration
@@ -357,7 +340,6 @@ def getRecommendations(current_user):
             if act.result == ActivityResults.SUCCESS:
                 dur_exitos[dur] = dur_exitos.get(dur, 0) + 1
 
-        # --- 3. Franja horaria (a partir de init_date) ---
         if act.init_date:
             h = act.init_date.hour
             if 6 <= h < 12:
@@ -388,28 +370,24 @@ def getRecommendations(current_user):
     # Construimos las frases
     frases = []
 
-    # 1) Categoría más exitosa
     cat, tasa_cat, tot_cat = mejor_clave(cat_total, cat_exitos)
     if cat:
         frases.append(
             f"Tu categoría más productiva es {cat.value} con un {int(tasa_cat)}% de éxito en {tot_cat} intentos."
         )
 
-    # 2) Duración óptima
     dur, tasa_dur, tot_dur = mejor_clave(dur_total, dur_exitos)
     if dur:
         frases.append(
             f"Rindes mejor con sesiones de {dur} minutos ({int(tasa_dur)}% de éxito en {tot_dur} actividades)."
         )
 
-    # 3) Franja horaria más productiva
     franja, tasa_franja, tot_franja = mejor_clave(franja_total, franja_exitos)
     if franja:
         frases.append(
             f"Tus {franja} son más productivas ({int(tasa_franja)}% de éxito en {tot_franja} actividades)."
         )
 
-    # --- 4. Tipo de actividad más efectivo ---
     tipo_total = {}
     tipo_exitos = {}
     tipo_nombre = {}

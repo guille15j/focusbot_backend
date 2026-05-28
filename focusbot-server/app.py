@@ -11,11 +11,8 @@ def create_app():
 
     @app.before_request
     def check_api_key():
-        # Si quieres excluir alguna ruta pública, hazlo aquí
-        # if request.path == '/auth/login':
-        #     return None  # Permitir login sin API Key (opcional)
 
-        if request.method == 'OPTIONS': # Permitir todas las peticiones preflight (CORS) sin API Key para web
+        if request.method == 'OPTIONS': # Permitir todas las peticiones  sin API Key para web
             return None
 
         api_key = request.headers.get('X-API-Key')
@@ -29,7 +26,7 @@ def create_app():
     # Iniciación de la bd
     db.init_app(app)
 
-    # Blueprints (Rutas)
+    # Blueprints
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(google_bp, url_prefix='/auth')
     app.register_blueprint(bot_bp, url_prefix='/bot')
@@ -41,9 +38,9 @@ def create_app():
     with app.app_context():
         try:
             db.create_all()
-            print("🟢 Conexión exitosa: Tablas sincronizadas.")
+            print("Conexión exitosa: Tablas sincronizadas.")
         except Exception as e:
-            print(f"🔴 Error de BBDD: {e}")
+            print(f"Error de BBDD: {e}")
 
     # INICIAMOS EL SERVICIO MQTT CENTRALIZADO
     init_mqtt(app) 
