@@ -1,6 +1,3 @@
-Basado exclusivamente en la arquitectura de tu sistema y el docker-compose que me compartiste, aquí tienes el contenido para el `README.md` del backend:
-
-```markdown
 # ⚙️ Focus Bot — Servidor Backend
 
 > **API REST centralizada para la gestión del ecosistema IoT de productividad Focus Bot. Actúa como puente entre la aplicación móvil y el dispositivo físico.**
@@ -83,12 +80,12 @@ focusbot-server/
 El ecosistema de servidores se despliega mediante Docker Compose con tres servicios que comparten la red `focus_net`:
 
 | Servicio | Imagen | Puerto | Función |
-|---|---|---|---|
+| :--- | :--- | :--- | :--- |
 | `focus_db` | `postgres:15` | — | Base de datos relacional con healthcheck |
 | `focus_mqtt` | `eclipse-mosquitto:2` | 1883 | Broker MQTT para comunicación en tiempo real |
 | `focus_api` | Personalizada (`./focusbot-server`) | 5000 | API REST con recarga en caliente para desarrollo |
 
-### Healthcheck de base de datos
+### Healthcheck de Base de Datos
 
 ```yaml
 healthcheck:
@@ -117,14 +114,14 @@ Protege todas las rutas que requieren autenticación. Realiza cuatro comprobacio
 1. Extrae el token de la cabecera `Authorization: Bearer <token>`.
 2. Verifica la firma con la clave secreta.
 3. Comprueba que no haya expirado.
-4. Confirma que el usuario sigue existiendo en la base de datos.
+4. Confirms que el usuario sigue existiendo en la base de datos.
 
 ### Registro y Verificación
 
-- **Contraseñas**: almacenadas exclusivamente como hash con `werkzeug.security.generate_password_hash()`.
-- **Verificación de email**: código numérico de 6 dígitos enviado por SMTP con TLS. La cuenta permanece bloqueada (`verified = False`) hasta la verificación.
-- **Rollback transaccional**: ante fallos durante el envío del correo, se deshacen todas las operaciones para evitar estados inconsistentes.
-- **Google OAuth2**: autenticación mediante ID Token verificado con la librería oficial `google-auth`.
+- **Contraseñas**: Almacenadas exclusivamente como hash con `werkzeug.security.generate_password_hash()`.
+- **Verificación de email**: Código numérico de 6 dígitos enviado por SMTP con TLS. La cuenta permanece bloqueada (`verified = False`) hasta la verificación.
+- **Rollback transaccional**: Ante fallos durante el envío del correo, se deshacen todas las operaciones para evitar estados inconsistentes.
+- **Google OAuth2**: Autenticación mediante ID Token verificado con la librería oficial `google-auth`.
 
 ---
 
@@ -133,7 +130,7 @@ Protege todas las rutas que requieren autenticación. Realiza cuatro comprobacio
 La API se organiza en **blueprints** por funcionalidad. Todos los endpoints (excepto los de autenticación y el envío de comandos al bot) requieren token JWT válido.
 
 | Blueprint | Prefijo | Endpoints principales |
-|---|---|---|
+| :--- | :--- | :--- |
 | `auth` | `/auth` | `register`, `login`, `verify`, `google`, `resend-verification`, `change/password` |
 | `users` | `/users` | `user` (GET), `update` (PATCH), `detail` (GET/POST/PATCH) |
 | `bot` | `/bot` | `check`, `pair`, `getByUser`, `command` |
@@ -153,7 +150,7 @@ Todas las peticiones entrantes se validan con **esquemas Pydantic** antes de ser
 Cada dispositivo se identifica por su dirección MAC, generando tres canales exclusivos:
 
 | Tópico | Publicador | Suscriptor | Contenido |
-|---|---|---|---|
+| :--- | :--- | :--- | :--- |
 | `focusapp/{mac}/command` | Servidor | Bot | Comandos JSON (iniciar, pausar, reanudar, cancelar) |
 | `focusapp/{mac}/status` | Bot | Servidor | Estado del dispositivo (`OFFLINE`, `IDLE`, `FOCUSING`) |
 | `focusapp/{mac}/result` | Bot | Servidor | Resultado de la actividad (`SUCCESS`, `FAILED`, `REJECTED`) |
@@ -164,7 +161,69 @@ Los comandos se publican con **QoS 0** ("como mucho una vez"). Esta decisión re
 
 ### Gestión de conexión
 
-- **`asegurar_conexion()`**: verifica el estado del cliente MQTT antes de cada publicación.
+- **`asegurar_conexion()`**: Verifica el estado del cliente MQTT antes de cada publicación.
 - Si la conexión se ha perdido, intenta reconexión automática.
 - Si la reconexión falla, el endpoint devuelve **error 503** (Servicio no disponible).
 
+---
+
+## 🚀 Instalación y Despliegue
+
+### Requisitos previos
+
+- [Docker](https://www.docker.com/) y Docker Compose instalados.
+- Puertos `5000` y `1883` disponibles en el host.
+
+### Pasos
+
+```bash
+# 1. Clonar el repositorio
+git clone [https://github.com/tu-usuario/focusbot-server.git](https://github.com/tu-usuario/focusbot-server.git)
+cd focusbot-server
+
+# 2. Configurar variables de entorno
+cp .env.example .env
+# Editar .env con las credenciales reales
+
+# 3. Construir y levantar los servicios
+docker-compose up -d
+
+# 4. Verificar que todos los contenedores están saludables
+docker-compose ps
+```
+
+### Desarrollo sin Docker
+
+```bash
+# Requisitos: Python 3.10+, PostgreSQL 15+, Mosquitto 2+
+pip install -r requirements.txt
+flask run --host=0.0.0.0 --port=5000
+```
+
+---
+
+## 🔐 Variables de Entorno
+
+El archivo `.env` debe contener las siguientes variables:
+
+```ini
+# Base de datos PostgreSQL
+POSTGRES_USER=focus_user
+POSTGRES_PASSWORD=secure_password
+POSTGRES_DB=focusbot_db
+DATABASE_URL=postgresql://focus_user:secure_password@focus_db:5432/focusbot_db
+
+# Broker MQTT
+MQTT_BROKER=focus_mqtt
+MQTT_PORT=1883
+MQTT_USER=mqtt_user
+MQTT_PASSWORD=mqtt_password
+
+# Seguridad JWT y SMTP
+SECRET_KEY=your_jwt_secret_key_here
+SMTP_USER=no-reply@focusbot.com
+SMTP_PASSWORD=your_app_email_password
+
+# Google OAuth2
+GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
+```
