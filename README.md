@@ -19,8 +19,6 @@
 - [Seguridad y Autenticación](#-seguridad-y-autenticación)
 - [API REST](#-api-rest)
 - [Comunicación MQTT](#-comunicación-mqtt)
-- [Instalación y Despliegue](#-instalación-y-despliegue)
-- [Variables de Entorno](#-variables-de-entorno)
 
 ---
 
